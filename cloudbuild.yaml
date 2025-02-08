@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '--build-arg', 'GOOGLE_SHEETS_API_KEY=${_GOOGLE_SHEETS_API_KEY}',
+      '--build-arg', 'GOOGLE_SHEETS_ID=${_GOOGLE_SHEETS_ID}',
+      '--build-arg', 'GOOGLE_SHEETS_TAB_NAME=${_GOOGLE_SHEETS_TAB_NAME}',
+      '-t', 'gcr.io/$PROJECT_ID/f3-region-pages',
+      '.'
+    ]
+images:
+  - 'gcr.io/$PROJECT_ID/f3-region-pages' 
