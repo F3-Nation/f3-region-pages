@@ -217,11 +217,19 @@ export const fetchRegionSlugs = async (): Promise<string[]> => {
 }
 
 export const fetchWorkoutLocationsByRegion = async (regionSlug: string): Promise<WorkoutLocation[] | null> => {
-    const regionData = await getCachedRegionWorkouts(regionSlug);
-    if (!regionData) return null;
+    try {
+        const regionData = await getCachedRegionWorkouts(regionSlug);
+        if (!regionData) {
+            console.error(`No data found for region: ${regionSlug}`);
+            return null;
+        }
 
-    return regionData.workouts.map(workout => ({
-        ...workout.data,
-        Time: workout.time || ''
-    } as WorkoutLocation));
+        return regionData.workouts.map(workout => ({
+            ...workout.data,
+            Time: workout.time || ''
+        } as WorkoutLocation));
+    } catch (error) {
+        console.error(`Error fetching workouts for ${regionSlug}:`, error);
+        return null;
+    }
 } 
