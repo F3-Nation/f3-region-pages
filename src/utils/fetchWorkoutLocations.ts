@@ -1,6 +1,8 @@
 import type { WorkoutLocation } from '@/types/workoutLocation';
 import { unstable_cache } from 'next/cache';
-import { GOOGLE_SHEETS_JSON_URL } from '@/lib/env';
+import { loadEnvConfig } from '@/lib/env';
+
+const { GOOGLE_SHEETS_JSON_URL } = loadEnvConfig();
 
 type SheetResponse = {
   values: string[][];
@@ -228,6 +230,6 @@ export const fetchWorkoutLocationsByRegion = async (
       ({
         ...workout.data,
         Time: workout.time || '',
-      }) as WorkoutLocation
+      } as WorkoutLocation)
   );
 };

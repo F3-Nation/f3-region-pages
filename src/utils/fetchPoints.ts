@@ -1,40 +1,27 @@
-import { GOOGLE_SHEETS_JSON_URL } from '../lib/env';
+import { loadEnvConfig } from '../lib/env';
+import type { Point } from '../types/Point';
 
-// Define an interface for the point objects
-interface Point {
-  Group: string;
-  Time: string;
-  Type: string;
-  Region: string;
-  Website: string;
-  Notes: string;
-  'Marker Icon': string;
-  'Marker Color': string;
-  'Icon Color': string;
-  'Custom Size': string;
-  Name: string;
-  Image: string;
-  Description: string;
-  Location: string;
-  Latitude: string;
-  Longitude: string;
-  'Entry ID': string;
-}
+type SheetData = {
+  values: string[][];
+};
 
-// Type guard to check if data is in the expected format
-function isValidData(data: any): data is { values: string[][] } {
+function isValidData(data: unknown): data is SheetData {
   return (
-    data &&
-    Array.isArray(data.values) &&
-    data.values.every((row) => Array.isArray(row))
+    data !== null &&
+    typeof data === 'object' &&
+    'values' in data &&
+    Array.isArray((data as SheetData).values) &&
+    (data as SheetData).values.every((row) => Array.isArray(row))
   );
 }
+
+const { GOOGLE_SHEETS_JSON_URL } = loadEnvConfig();
 
 // Function to map rows to Point objects
 function mapRowsToPoints(headers: string[], rows: string[][]): Point[] {
   return rows.map((row) => {
     return headers.reduce((acc, header, index) => {
-      acc[header] = row[index];
+      acc[header as keyof Point] = row[index];
       return acc;
     }, {} as Point);
   });
