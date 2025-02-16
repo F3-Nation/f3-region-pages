@@ -1,0 +1,134 @@
+{
+  "id": "d0d3a790-beb7-4589-9077-7260e6582095",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.points": {
+      "name": "points",
+      "schema": "",
+      "columns": {
+        "Group": {
+          "name": "Group",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Time": {
+          "name": "Time",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Type": {
+          "name": "Type",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Region": {
+          "name": "Region",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Website": {
+          "name": "Website",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Notes": {
+          "name": "Notes",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Marker Icon": {
+          "name": "Marker Icon",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Marker Color": {
+          "name": "Marker Color",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Icon Color": {
+          "name": "Icon Color",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Custom Size": {
+          "name": "Custom Size",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Name": {
+          "name": "Name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Image": {
+          "name": "Image",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Description": {
+          "name": "Description",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Location": {
+          "name": "Location",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Latitude": {
+          "name": "Latitude",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Longitude": {
+          "name": "Longitude",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "Entry ID": {
+          "name": "Entry ID",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
