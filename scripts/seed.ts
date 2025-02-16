@@ -1,25 +1,31 @@
 import { fetchPoints } from '../src/utils/fetchPoints';
 import { db } from '../drizzle/db';
-import { points } from '../drizzle/schema';
+import { points, regions } from '../drizzle/schema';
+import { toKebabCase } from '../src/utils/toKebabCase';
+import { Point } from '@/types/Point';
+import { Region } from '@/types/Region';
 
 async function seedDatabase() {
   try {
-    // Delete all records from the points table
     await db.delete(points);
+    await db.delete(regions);
 
-    // Fetch new points data
     const newPoints = await fetchPoints();
     if (!newPoints) {
       console.error('No points data fetched.');
       return;
     }
 
-    // Define batch size
-    const batchSize = 100; // Adjust this number based on your needs
+    const newRegions = await db
+      .insert(regions)
+      .values(getRegionsFromPoints(newPoints))
+      .returning({ id: regions.id, name: regions.name });
 
-    // Insert new points data in batches
-    for (let i = 0; i < newPoints.length; i += batchSize) {
-      const batch = newPoints.slice(i, i + batchSize);
+    const regionPoints = joinPointsToRegions(newPoints, newRegions);
+
+    const batchSize = 100;
+    for (let i = 0; i < regionPoints.length; i += batchSize) {
+      const batch = regionPoints.slice(i, i + batchSize);
       await db.insert(points).values(batch);
     }
 
@@ -27,6 +33,29 @@ async function seedDatabase() {
   } catch (error) {
     console.error('Error seeding database:', error);
   }
+}
+
+function getRegionsFromPoints(points: Point[]) {
+  const regionNames = points.map((point) => {
+    return point.Region;
+  });
+  const uniqueRegionNames = [...new Set(regionNames)];
+  const newRegions = uniqueRegionNames.map((name) => {
+    return {
+      name,
+      slug: toKebabCase(name),
+    };
+  });
+  return newRegions;
+}
+
+function joinPointsToRegions(points: Point[], regions: Omit<Region, 'slug'>[]) {
+  return points.map((point) => {
+    return {
+      ...point,
+      regionId: regions.find((r) => r.name === point.Region)?.id,
+    };
+  });
 }
 
 seedDatabase();

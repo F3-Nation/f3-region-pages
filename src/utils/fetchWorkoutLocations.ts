@@ -1,7 +1,7 @@
 import type { WorkoutLocation } from '@/types/workoutLocation';
 import { unstable_cache } from 'next/cache';
 import { loadEnvConfig } from '@/lib/env';
-
+import { toKebabCase } from './toKebabCase';
 const { GOOGLE_SHEETS_JSON_URL } = loadEnvConfig();
 
 type SheetResponse = {
@@ -15,12 +15,6 @@ type RegionData = {
     data: Record<string, string>;
   }>;
 };
-
-const toKebabCase = (str: string) =>
-  str
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '');
 
 // Convert time to 12-hour format, handling various input formats
 const convertTo12Hour = (time: string): string => {

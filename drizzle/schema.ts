@@ -1,4 +1,5 @@
-import { pgTable, varchar } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { jsonb, pgTable, uuid, varchar } from 'drizzle-orm/pg-core';
 
 export const points = pgTable('points', {
   Group: varchar().notNull(),
@@ -18,4 +19,13 @@ export const points = pgTable('points', {
   Latitude: varchar().notNull(),
   Longitude: varchar().notNull(),
   'Entry ID': varchar().primaryKey().notNull(),
+  regionId: uuid('region_id').references(() => regions.id),
+});
+
+export const regions = pgTable('regions', {
+  id: uuid('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  name: varchar().notNull(),
+  slug: varchar().notNull().unique(),
 });
