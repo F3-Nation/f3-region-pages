@@ -1,6 +1,6 @@
 'use client';
 
-import SearchableRegionList from "@/components/SearchableRegionList";
+import SearchableRegionList from '@/components/SearchableRegionList';
 
 interface RegionsClientProps {
   regionSlugs: string[];
@@ -15,10 +15,10 @@ export function RegionsClient({
   currentLetterRegions,
   currentLetter,
   availableLetters,
-  regionsByLetter
+  regionsByLetter,
 }: RegionsClientProps) {
   return (
-    <SearchableRegionList 
+    <SearchableRegionList
       regionSlugs={regionSlugs}
       currentLetterRegions={currentLetterRegions}
       currentLetter={currentLetter}
@@ -26,4 +26,4 @@ export function RegionsClient({
       regionsByLetter={regionsByLetter}
     />
   );
-} 
+}

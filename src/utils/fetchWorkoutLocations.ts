@@ -1,6 +1,6 @@
-import type { WorkoutLocation } from "@/types/workoutLocation";
-import { unstable_cache } from "next/cache";
-import { GOOGLE_SHEETS_JSON_URL } from "@/lib/env";
+import type { WorkoutLocation } from '@/types/workoutLocation';
+import { unstable_cache } from 'next/cache';
+import { GOOGLE_SHEETS_JSON_URL } from '@/lib/env';
 
 type SheetResponse = {
   values: string[][];
@@ -17,16 +17,16 @@ type RegionData = {
 const toKebabCase = (str: string) =>
   str
     .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
 
 // Convert time to 12-hour format, handling various input formats
 const convertTo12Hour = (time: string): string => {
   // Remove any existing AM/PM and extra spaces
-  const cleanTime = time.replace(/\s*[AaPp][Mm]\s*/g, "").trim();
+  const cleanTime = time.replace(/\s*[AaPp][Mm]\s*/g, '').trim();
 
   try {
-    const [hours, minutesPart] = cleanTime.split(":");
+    const [hours, minutesPart] = cleanTime.split(':');
     if (!minutesPart) return time; // Return original if no minutes part
 
     const minutes = parseInt(minutesPart, 10);
@@ -42,14 +42,14 @@ const convertTo12Hour = (time: string): string => {
       minutes > 59
     ) {
       console.warn(
-        `Invalid time values (hours: ${hoursNum}, minutes: ${minutes}): "${time}"`,
+        `Invalid time values (hours: ${hoursNum}, minutes: ${minutes}): "${time}"`
       );
       return time; // Return original if invalid
     }
 
-    const period = hoursNum >= 12 ? "PM" : "AM";
+    const period = hoursNum >= 12 ? 'PM' : 'AM';
     const hours12 = hoursNum % 12 || 12;
-    return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
+    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
   } catch (error) {
     console.warn(`Error parsing time: "${time}"`, error);
     return time; // Return original if parsing fails
@@ -60,29 +60,29 @@ const convertTo12Hour = (time: string): string => {
 const normalizeTimeRange = (timeRange: string): string => {
   // Handle various dash types (hyphen, en-dash, em-dash)
   const times = timeRange.split(/[-–—]/).map((t) => t.trim());
-  return times.map(convertTo12Hour).join(" - ");
+  return times.map(convertTo12Hour).join(' - ');
 };
 
 // Known workout location fields that we expect from the sheet
 const WORKOUT_FIELDS = [
-  "Entry ID",
-  "Region",
-  "Location",
-  "Group",
-  "Workout Type",
-  "Time",
-  "Type",
-  "Name",
-  "Description",
-  "Notes",
-  "Website",
-  "Latitude",
-  "Longitude",
-  "Marker Icon",
-  "Marker Color",
-  "Icon Color",
-  "Custom Size",
-  "Image",
+  'Entry ID',
+  'Region',
+  'Location',
+  'Group',
+  'Workout Type',
+  'Time',
+  'Type',
+  'Name',
+  'Description',
+  'Notes',
+  'Website',
+  'Latitude',
+  'Longitude',
+  'Marker Icon',
+  'Marker Color',
+  'Icon Color',
+  'Custom Size',
+  'Image',
 ] as const;
 
 type WorkoutField = (typeof WORKOUT_FIELDS)[number];
@@ -101,7 +101,7 @@ const getCachedRegionSlugs = unstable_cache(
       });
 
       if (!res.ok) {
-        console.error("Failed to fetch sheet data:", res.statusText);
+        console.error('Failed to fetch sheet data:', res.statusText);
         return [];
       }
 
@@ -110,7 +110,7 @@ const getCachedRegionSlugs = unstable_cache(
       if (!rows || rows.length < 2) return [];
 
       const headers = rows[0];
-      const regionColumnIndex = headers.indexOf("Region");
+      const regionColumnIndex = headers.indexOf('Region');
       if (regionColumnIndex === -1) return [];
 
       // Create a Set to store unique regions
@@ -131,12 +131,12 @@ const getCachedRegionSlugs = unstable_cache(
         .map((region) => toKebabCase(region))
         .sort((a, b) => a.localeCompare(b));
     } catch (error) {
-      console.error("Error fetching region slugs:", error);
+      console.error('Error fetching region slugs:', error);
       return [];
     }
   },
-  ["region-slugs"],
-  { revalidate: 3600, tags: ["region-slugs"] },
+  ['region-slugs'],
+  { revalidate: 3600, tags: ['region-slugs'] }
 );
 
 // Cache workouts for a specific region
@@ -148,7 +148,7 @@ const getCachedRegionWorkouts = unstable_cache(
       });
 
       if (!res.ok) {
-        console.error("Failed to fetch sheet data:", res.statusText);
+        console.error('Failed to fetch sheet data:', res.statusText);
         return null;
       }
 
@@ -157,18 +157,18 @@ const getCachedRegionWorkouts = unstable_cache(
       if (!rows || rows.length < 2) return null;
 
       const headers = rows[0];
-      const regionColumnIndex = headers.indexOf("Region");
-      const timeColumnIndex = headers.indexOf("Time");
+      const regionColumnIndex = headers.indexOf('Region');
+      const timeColumnIndex = headers.indexOf('Time');
 
       if (regionColumnIndex === -1) {
-        console.error("Region column not found");
+        console.error('Region column not found');
         return null;
       }
 
-      const workouts: RegionData["workouts"] = [];
+      const workouts: RegionData['workouts'] = [];
 
       rows.slice(1).forEach((row) => {
-        const region = row[regionColumnIndex]?.trim() || "";
+        const region = row[regionColumnIndex]?.trim() || '';
         if (!region) return; // Skip rows with no region
 
         const currentRegionSlug = toKebabCase(region);
@@ -176,16 +176,16 @@ const getCachedRegionWorkouts = unstable_cache(
         if (currentRegionSlug === regionSlug) {
           const time =
             timeColumnIndex !== -1
-              ? normalizeTimeRange(row[timeColumnIndex] || "")
+              ? normalizeTimeRange(row[timeColumnIndex] || '')
               : undefined;
           const data: Record<string, string> = {};
 
           headers.forEach((header, i) => {
             if (isWorkoutField(header) && row[i]) {
               // Store the original region name, not the slug
-              if (header === "Region") {
+              if (header === 'Region') {
                 data[header] = region;
-              } else if (header !== "Time") {
+              } else if (header !== 'Time') {
                 data[header] = row[i];
               }
             }
@@ -205,12 +205,12 @@ const getCachedRegionWorkouts = unstable_cache(
         workouts,
       };
     } catch (error) {
-      console.error("Error fetching workouts for region:", error);
+      console.error('Error fetching workouts for region:', error);
       return null;
     }
   },
-  ["region-workouts"],
-  { revalidate: 3600, tags: ["region-workouts"] },
+  ['region-workouts'],
+  { revalidate: 3600, tags: ['region-workouts'] }
 );
 
 export const fetchRegionSlugs = async (): Promise<string[]> => {
@@ -218,7 +218,7 @@ export const fetchRegionSlugs = async (): Promise<string[]> => {
 };
 
 export const fetchWorkoutLocationsByRegion = async (
-  regionSlug: string,
+  regionSlug: string
 ): Promise<WorkoutLocation[] | null> => {
   const regionData = await getCachedRegionWorkouts(regionSlug);
   if (!regionData) return null;
@@ -227,7 +227,7 @@ export const fetchWorkoutLocationsByRegion = async (
     (workout) =>
       ({
         ...workout.data,
-        Time: workout.time || "",
-      }) as WorkoutLocation,
+        Time: workout.time || '',
+      }) as WorkoutLocation
   );
 };

@@ -8,7 +8,9 @@ interface SearchableRegionListProps {
   regionSlugs: string[];
 }
 
-export default function SearchableRegionList({ regionSlugs }: SearchableRegionListProps) {
+export default function SearchableRegionList({
+  regionSlugs,
+}: SearchableRegionListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
@@ -18,53 +20,59 @@ export default function SearchableRegionList({ regionSlugs }: SearchableRegionLi
 
   const filteredRegions = useMemo(() => {
     const query = searchQuery.toLowerCase();
-    return regionSlugs.filter(slug => 
+    return regionSlugs.filter((slug) =>
       slug.replace(/-/g, ' ').toLowerCase().includes(query)
     );
   }, [regionSlugs, searchQuery]);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
-    if (!searchQuery) return;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (!searchQuery) return;
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < filteredRegions.length - 1 ? prev + 1 : prev
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(prev => prev > -1 ? prev - 1 : prev);
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < filteredRegions.length) {
-          const selectedSlug = filteredRegions[selectedIndex];
-          setIsLoading(true);
-          router.push(`/regions/${selectedSlug}`);
-        }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setSearchQuery('');
-        setSelectedIndex(-1);
-        inputRef.current?.blur();
-        break;
-    }
-  }, [searchQuery, filteredRegions, selectedIndex, router]);
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            prev < filteredRegions.length - 1 ? prev + 1 : prev
+          );
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedIndex((prev) => (prev > -1 ? prev - 1 : prev));
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (selectedIndex >= 0 && selectedIndex < filteredRegions.length) {
+            const selectedSlug = filteredRegions[selectedIndex];
+            setIsLoading(true);
+            router.push(`/regions/${selectedSlug}`);
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
+          setSearchQuery('');
+          setSelectedIndex(-1);
+          inputRef.current?.blur();
+          break;
+      }
+    },
+    [searchQuery, filteredRegions, selectedIndex, router]
+  );
 
-  const handleSuggestionClick = useCallback((slug: string) => {
-    setIsLoading(true);
-    router.push(`/regions/${slug}`);
-  }, [router]);
+  const handleSuggestionClick = useCallback(
+    (slug: string) => {
+      setIsLoading(true);
+      router.push(`/regions/${slug}`);
+    },
+    [router]
+  );
 
   return (
     <div className="w-full">
       <div className="relative mb-6">
         <div className="relative">
-          <div 
-            role="combobox" 
+          <div
+            role="combobox"
             aria-expanded={searchQuery.length > 0}
             aria-controls="search-suggestions"
             aria-haspopup="listbox"
@@ -88,7 +96,11 @@ export default function SearchableRegionList({ regionSlugs }: SearchableRegionLi
                 placeholder-gray-500 dark:placeholder-gray-400
                 disabled:opacity-50"
               aria-label="Search regions"
-              aria-activedescendant={selectedIndex >= 0 ? `suggestion-${filteredRegions[selectedIndex]}` : undefined}
+              aria-activedescendant={
+                selectedIndex >= 0
+                  ? `suggestion-${filteredRegions[selectedIndex]}`
+                  : undefined
+              }
               aria-autocomplete="list"
               disabled={isLoading}
             />
@@ -131,19 +143,16 @@ export default function SearchableRegionList({ regionSlugs }: SearchableRegionLi
         )}
       </div>
 
-      <div 
-        aria-live="polite" 
-        className="sr-only"
-      >
-        {filteredRegions.length === 0 && searchQuery 
-          ? `No regions found matching ${searchQuery}` 
+      <div aria-live="polite" className="sr-only">
+        {filteredRegions.length === 0 && searchQuery
+          ? `No regions found matching ${searchQuery}`
           : `${filteredRegions.length} regions found`}
       </div>
 
       <ul className="grid gap-4">
         {(filteredRegions.length > 0 ? filteredRegions : []).map((slug) => (
           <li key={slug}>
-            <Link 
+            <Link
               href={`/regions/${slug}`}
               className="block p-4 rounded-lg 
                 border border-gray-200 dark:border-gray-700 
@@ -152,7 +161,9 @@ export default function SearchableRegionList({ regionSlugs }: SearchableRegionLi
                 text-gray-900 dark:text-gray-100
                 transition-colors"
             >
-              <span className="text-lg capitalize">{slug.replace(/-/g, ' ')}</span>
+              <span className="text-lg capitalize">
+                {slug.replace(/-/g, ' ')}
+              </span>
               <span className="ml-2 text-gray-500 dark:text-gray-400">→</span>
             </Link>
           </li>
@@ -165,4 +176,4 @@ export default function SearchableRegionList({ regionSlugs }: SearchableRegionLi
       </ul>
     </div>
   );
-} 
+}

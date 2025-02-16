@@ -12,12 +12,12 @@ interface Props {
   regionsByLetter: Record<string, string[]>;
 }
 
-export default function SearchableRegionList({ 
+export default function SearchableRegionList({
   regionSlugs = [],
   currentLetterRegions = [],
   currentLetter = 'A',
   availableLetters = [],
-  regionsByLetter = {}
+  regionsByLetter = {},
 }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -30,7 +30,7 @@ export default function SearchableRegionList({
   const filteredRegions = useMemo(() => {
     if (!searchQuery) return [];
     const query = searchQuery.toLowerCase();
-    return regionSlugs.filter(slug => 
+    return regionSlugs.filter((slug) =>
       slug.replace(/-/g, ' ').toLowerCase().includes(query)
     );
   }, [searchQuery, regionSlugs]);
@@ -41,55 +41,64 @@ export default function SearchableRegionList({
     return currentLetterRegions;
   }, [searchQuery, filteredRegions, currentLetterRegions]);
 
-  const handleLetterChange = useCallback((letter: string) => {
-    setSearchQuery('');
-    setSelectedIndex(-1);
-    router.push(`/regions?letter=${letter.toLowerCase()}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [router]);
+  const handleLetterChange = useCallback(
+    (letter: string) => {
+      setSearchQuery('');
+      setSelectedIndex(-1);
+      router.push(`/regions?letter=${letter.toLowerCase()}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [router]
+  );
 
-  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
-    if (!searchQuery) return;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (!searchQuery) return;
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < filteredRegions.length - 1 ? prev + 1 : prev
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(prev => prev > -1 ? prev - 1 : prev);
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < filteredRegions.length) {
-          const selectedSlug = filteredRegions[selectedIndex];
-          setIsLoading(true);
-          router.push(`/regions/${selectedSlug}`);
-        }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setSearchQuery('');
-        setSelectedIndex(-1);
-        inputRef.current?.blur();
-        break;
-    }
-  }, [searchQuery, filteredRegions, selectedIndex, router]);
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            prev < filteredRegions.length - 1 ? prev + 1 : prev
+          );
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedIndex((prev) => (prev > -1 ? prev - 1 : prev));
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (selectedIndex >= 0 && selectedIndex < filteredRegions.length) {
+            const selectedSlug = filteredRegions[selectedIndex];
+            setIsLoading(true);
+            router.push(`/regions/${selectedSlug}`);
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
+          setSearchQuery('');
+          setSelectedIndex(-1);
+          inputRef.current?.blur();
+          break;
+      }
+    },
+    [searchQuery, filteredRegions, selectedIndex, router]
+  );
 
-  const handleSuggestionClick = useCallback((slug: string) => {
-    setIsLoading(true);
-    router.push(`/regions/${slug}`);
-  }, [router]);
+  const handleSuggestionClick = useCallback(
+    (slug: string) => {
+      setIsLoading(true);
+      router.push(`/regions/${slug}`);
+    },
+    [router]
+  );
 
   return (
     <div className="w-full">
       <div className="relative mb-6">
         <div className="relative">
-          <div 
-            role="combobox" 
+          <div
+            role="combobox"
             aria-expanded={searchQuery.length > 0}
             aria-controls="search-suggestions"
             aria-haspopup="listbox"
@@ -116,7 +125,11 @@ export default function SearchableRegionList({
                 placeholder-gray-500 dark:placeholder-gray-400
                 disabled:opacity-50"
               aria-label="Search regions"
-              aria-activedescendant={selectedIndex >= 0 ? `suggestion-${filteredRegions[selectedIndex]}` : undefined}
+              aria-activedescendant={
+                selectedIndex >= 0
+                  ? `suggestion-${filteredRegions[selectedIndex]}`
+                  : undefined
+              }
               aria-autocomplete="list"
               disabled={isLoading}
             />
@@ -172,9 +185,10 @@ export default function SearchableRegionList({
                     onClick={() => handleLetterChange(letter)}
                     disabled={letter === currentLetter}
                     className={`w-10 h-10 flex items-center justify-center rounded-lg border
-                      ${letter === currentLetter 
-                        ? 'bg-blue-600 text-white border-blue-600' 
-                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      ${
+                        letter === currentLetter
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }
                       ${!hasRegions ? 'opacity-50' : ''}
                       transition-colors`}
@@ -194,9 +208,10 @@ export default function SearchableRegionList({
                     onClick={() => handleLetterChange(letter)}
                     disabled={letter === currentLetter}
                     className={`w-10 h-10 flex items-center justify-center rounded-lg border
-                      ${letter === currentLetter 
-                        ? 'bg-blue-600 text-white border-blue-600' 
-                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      ${
+                        letter === currentLetter
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }
                       ${!hasRegions ? 'opacity-50' : ''}
                       transition-colors`}
@@ -216,9 +231,10 @@ export default function SearchableRegionList({
                     onClick={() => handleLetterChange(letter)}
                     disabled={letter === currentLetter}
                     className={`w-10 h-10 flex items-center justify-center rounded-lg border
-                      ${letter === currentLetter 
-                        ? 'bg-blue-600 text-white border-blue-600' 
-                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      ${
+                        letter === currentLetter
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }
                       ${!hasRegions ? 'opacity-50' : ''}
                       transition-colors`}
@@ -238,9 +254,10 @@ export default function SearchableRegionList({
                     onClick={() => handleLetterChange(letter)}
                     disabled={letter === currentLetter}
                     className={`w-10 h-10 flex items-center justify-center rounded-lg border
-                      ${letter === currentLetter 
-                        ? 'bg-blue-600 text-white border-blue-600' 
-                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      ${
+                        letter === currentLetter
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }
                       ${!hasRegions ? 'opacity-50' : ''}
                       transition-colors`}
@@ -255,19 +272,17 @@ export default function SearchableRegionList({
       )}
 
       <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-        {searchQuery ? (
-          `Found ${filteredRegions.length} matching regions`
-        ) : (
-          currentLetterRegions.length > 0 
+        {searchQuery
+          ? `Found ${filteredRegions.length} matching regions`
+          : currentLetterRegions.length > 0
             ? `Showing ${currentLetterRegions.length} regions starting with "${currentLetter}"`
-            : `No regions found starting with "${currentLetter}"`
-        )}
+            : `No regions found starting with "${currentLetter}"`}
       </div>
 
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {displayRegions.map((slug) => (
           <li key={slug}>
-            <Link 
+            <Link
               href={`/regions/${slug}`}
               className="block p-4 rounded-lg 
                 border border-gray-200 dark:border-gray-700 
@@ -276,7 +291,9 @@ export default function SearchableRegionList({
                 text-gray-900 dark:text-gray-100
                 transition-colors"
             >
-              <span className="text-lg capitalize">{slug.replace(/-/g, ' ')}</span>
+              <span className="text-lg capitalize">
+                {slug.replace(/-/g, ' ')}
+              </span>
               <span className="ml-2 text-gray-500 dark:text-gray-400">→</span>
             </Link>
           </li>
