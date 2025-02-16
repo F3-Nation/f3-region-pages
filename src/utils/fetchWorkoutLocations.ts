@@ -1,5 +1,6 @@
 import type { WorkoutLocation } from '@/types/workoutLocation';
 import { unstable_cache } from 'next/cache';
+import { GOOGLE_SHEETS_JSON_URL } from '@/lib/env';
 
 type SheetResponse = {
     values: (string[])[];
@@ -12,20 +13,6 @@ type RegionData = {
         data: Record<string, string>;
     }>;
 }
-
-if (!process.env.GOOGLE_SHEETS_API_KEY) {
-    throw new Error('GOOGLE_SHEETS_API_KEY environment variable is not set');
-}
-
-if (!process.env.GOOGLE_SHEETS_ID) {
-    throw new Error('GOOGLE_SHEETS_ID environment variable is not set');
-}
-
-if (!process.env.GOOGLE_SHEETS_TAB_NAME) {
-    throw new Error('GOOGLE_SHEETS_TAB_NAME environment variable is not set');
-}
-
-const SHEETS_BASE_URL = `https://sheets.googleapis.com/v4/spreadsheets/${process.env.GOOGLE_SHEETS_ID}/values/${process.env.GOOGLE_SHEETS_TAB_NAME}?key=${process.env.GOOGLE_SHEETS_API_KEY}`;
 
 const toKebabCase = (str: string) => 
     str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -97,7 +84,7 @@ function isWorkoutField(field: string): field is WorkoutField {
 const getCachedRegionSlugs = unstable_cache(
     async (): Promise<string[]> => {
         try {
-            const res = await fetch(SHEETS_BASE_URL, {
+            const res = await fetch(GOOGLE_SHEETS_JSON_URL, {
                 next: { revalidate: 3600 }
             });
 
@@ -145,7 +132,7 @@ const getCachedRegionSlugs = unstable_cache(
 const getCachedRegionWorkouts = unstable_cache(
     async (regionSlug: string): Promise<RegionData | null> => {
         try {
-            const res = await fetch(SHEETS_BASE_URL, {
+            const res = await fetch(GOOGLE_SHEETS_JSON_URL, {
                 next: { revalidate: 3600 }
             });
 
