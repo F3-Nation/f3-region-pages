@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { WorkoutLocation } from '@/types/workoutLocation';
 import { DayFilter } from '@/components/DayFilter';
 import { WorkoutTypeFilter } from '@/components/WorkoutTypeFilter';
 import { ClearFiltersButton } from '@/components/ClearFiltersButton';
+import { RawPointData } from '@/types/Points';
 
 interface WorkoutFiltersProps {
-  workouts: WorkoutLocation[];
-  onFilteredWorkouts: (workouts: WorkoutLocation[]) => void;
+  workouts: RawPointData[];
+  onFilteredWorkouts: (workouts: RawPointData[]) => void;
 }
 
 export function WorkoutFilters({
@@ -62,7 +62,9 @@ export function WorkoutFilters({
           <span>{hasFilters ? getFilterSummary() : 'Filter Workouts'}</span>
         </div>
         <svg
-          className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 transition-transform ${
+            isExpanded ? 'rotate-180' : ''
+          }`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

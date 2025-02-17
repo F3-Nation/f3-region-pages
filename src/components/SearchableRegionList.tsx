@@ -3,20 +3,18 @@
 import { useState, useCallback, useRef, KeyboardEvent, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ALL_LETTERS } from '@/lib/const';
+import { Region } from '@/types/Region';
 
 interface Props {
-  regionSlugs: string[];
-  currentLetterRegions: string[];
+  regions: Omit<Region, 'id'>[];
   currentLetter: string;
-  availableLetters: string[];
-  regionsByLetter: Record<string, string[]>;
+  regionsByLetter: Record<string, Omit<Region, 'id'>[]>;
 }
 
 export default function SearchableRegionList({
-  regionSlugs = [],
-  currentLetterRegions = [],
-  currentLetter = 'A',
-  availableLetters = [],
+  regions = [],
+  currentLetter = ALL_LETTERS[0] || 'A',
   regionsByLetter = {},
 }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,16 +28,16 @@ export default function SearchableRegionList({
   const filteredRegions = useMemo(() => {
     if (!searchQuery) return [];
     const query = searchQuery.toLowerCase();
-    return regionSlugs.filter((slug) =>
-      slug.replace(/-/g, ' ').toLowerCase().includes(query)
+    return regions.filter((region) =>
+      region.name.toLowerCase().includes(query)
     );
-  }, [searchQuery, regionSlugs]);
+  }, [searchQuery, regions]);
 
   // Determine which regions to display
   const displayRegions = useMemo(() => {
     if (searchQuery) return filteredRegions;
-    return currentLetterRegions;
-  }, [searchQuery, filteredRegions, currentLetterRegions]);
+    return regionsByLetter[currentLetter];
+  }, [searchQuery, filteredRegions, regionsByLetter, currentLetter]);
 
   const handleLetterChange = useCallback(
     (letter: string) => {
@@ -151,21 +149,23 @@ export default function SearchableRegionList({
               border border-gray-200 dark:border-gray-700 
               rounded-lg shadow-lg max-h-60 overflow-y-auto z-10"
           >
-            {filteredRegions.map((slug, index) => (
+            {filteredRegions.map((region, index) => (
               <button
-                key={`suggestion-${slug}`}
-                id={`suggestion-${slug}`}
+                key={`suggestion-${region.slug}`}
+                id={`suggestion-${region.slug}`}
                 role="option"
                 aria-selected={index === selectedIndex}
-                onClick={() => handleSuggestionClick(slug)}
+                onClick={() => handleSuggestionClick(region.slug)}
                 className={`w-full text-left px-4 py-2 
                   text-gray-900 dark:text-gray-100
                   hover:bg-gray-50 dark:hover:bg-gray-700 
                   focus:bg-gray-50 dark:focus:bg-gray-700 
                   focus:outline-none capitalize
-                  ${index === selectedIndex ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+                  ${
+                    index === selectedIndex ? 'bg-gray-50 dark:bg-gray-700' : ''
+                  }`}
               >
-                {slug.replace(/-/g, ' ')}
+                {region.name}
               </button>
             ))}
           </div>
@@ -177,7 +177,7 @@ export default function SearchableRegionList({
           <div className="flex flex-col items-center gap-2">
             {/* First row: A-G */}
             <div className="flex gap-2">
-              {availableLetters.slice(0, 7).map((letter) => {
+              {ALL_LETTERS.slice(0, 7).map((letter) => {
                 const hasRegions = (regionsByLetter[letter]?.length || 0) > 0;
                 return (
                   <button
@@ -200,7 +200,7 @@ export default function SearchableRegionList({
             </div>
             {/* Second row: H-N */}
             <div className="flex gap-2">
-              {availableLetters.slice(7, 14).map((letter) => {
+              {ALL_LETTERS.slice(7, 14).map((letter) => {
                 const hasRegions = (regionsByLetter[letter]?.length || 0) > 0;
                 return (
                   <button
@@ -223,7 +223,7 @@ export default function SearchableRegionList({
             </div>
             {/* Third row: O-U */}
             <div className="flex gap-2">
-              {availableLetters.slice(14, 21).map((letter) => {
+              {ALL_LETTERS.slice(14, 21).map((letter) => {
                 const hasRegions = (regionsByLetter[letter]?.length || 0) > 0;
                 return (
                   <button
@@ -246,7 +246,7 @@ export default function SearchableRegionList({
             </div>
             {/* Fourth row: V-Z */}
             <div className="flex gap-2">
-              {availableLetters.slice(21).map((letter) => {
+              {ALL_LETTERS.slice(21).map((letter) => {
                 const hasRegions = (regionsByLetter[letter]?.length || 0) > 0;
                 return (
                   <button
@@ -274,16 +274,16 @@ export default function SearchableRegionList({
       <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
         {searchQuery
           ? `Found ${filteredRegions.length} matching regions`
-          : currentLetterRegions.length > 0
-            ? `Showing ${currentLetterRegions.length} regions starting with "${currentLetter}"`
-            : `No regions found starting with "${currentLetter}"`}
+          : regionsByLetter[currentLetter].length > 0
+          ? `Showing ${regionsByLetter[currentLetter].length} regions starting with "${currentLetter}"`
+          : `No regions found starting with "${currentLetter}"`}
       </div>
 
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {displayRegions.map((slug) => (
-          <li key={slug}>
+        {displayRegions.map((region) => (
+          <li key={region.slug}>
             <Link
-              href={`/regions/${slug}`}
+              href={`/regions/${region.slug}`}
               className="block p-4 rounded-lg 
                 border border-gray-200 dark:border-gray-700 
                 hover:border-gray-300 dark:hover:border-gray-600 
@@ -291,9 +291,7 @@ export default function SearchableRegionList({
                 text-gray-900 dark:text-gray-100
                 transition-colors"
             >
-              <span className="text-lg capitalize">
-                {slug.replace(/-/g, ' ')}
-              </span>
+              <span className="text-lg capitalize">{region.name}</span>
               <span className="ml-2 text-gray-500 dark:text-gray-400">→</span>
             </Link>
           </li>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { WorkoutLocation } from '@/types/workoutLocation';
+import { RawPointData } from '@/types/Points';
 
 const DAYS_OF_WEEK = [
   'Sunday',
@@ -15,8 +15,8 @@ const DAYS_OF_WEEK = [
 ];
 
 interface DayFilterProps {
-  workouts: WorkoutLocation[];
-  onFilteredWorkouts: (workouts: WorkoutLocation[]) => void;
+  workouts: RawPointData[];
+  onFilteredWorkouts: (workouts: RawPointData[]) => void;
 }
 
 export function DayFilter({ workouts, onFilteredWorkouts }: DayFilterProps) {
@@ -33,7 +33,7 @@ export function DayFilter({ workouts, onFilteredWorkouts }: DayFilterProps) {
 
     if (dayParam) {
       const filtered = workouts.filter(
-        (workout) => workout.Group?.toLowerCase() === dayParam
+        (workout) => workout.group?.toLowerCase() === dayParam
       );
       onFilteredWorkouts(filtered);
     } else {

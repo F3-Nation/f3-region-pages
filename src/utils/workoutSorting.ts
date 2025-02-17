@@ -1,4 +1,4 @@
-import { WorkoutLocation } from '@/types/workoutLocation';
+import { RawPointData } from '@/types/Points';
 
 // Time constants
 const MINUTES_IN_HOUR = 60;
@@ -141,18 +141,18 @@ const calculateMinutesUntilWorkout = (
  * If times are identical, sorts by workout name
  */
 export const sortWorkoutsByDayAndTime = (
-  workouts: WorkoutLocation[]
-): WorkoutLocation[] => {
+  workouts: RawPointData[]
+): RawPointData[] => {
   const { currentDayIndex, currentTimeInMinutes } = getCurrentTime();
 
   return [...workouts].sort((a, b) => {
     // Get day indices
-    const dayIndexA = DAYS_ORDER.indexOf(a.Group as DayOfWeek);
-    const dayIndexB = DAYS_ORDER.indexOf(b.Group as DayOfWeek);
+    const dayIndexA = DAYS_ORDER.indexOf(a.group as DayOfWeek);
+    const dayIndexB = DAYS_ORDER.indexOf(b.group as DayOfWeek);
 
     // Parse times
-    const timeA = parseTime(a.Time).totalMinutes;
-    const timeB = parseTime(b.Time).totalMinutes;
+    const timeA = parseTime(a.time).totalMinutes;
+    const timeB = parseTime(b.time).totalMinutes;
 
     // Calculate minutes until each workout
     const minutesUntilA = calculateMinutesUntilWorkout(
@@ -175,6 +175,6 @@ export const sortWorkoutsByDayAndTime = (
     }
 
     // Secondary sort by name if times are identical
-    return (a.Name || '').localeCompare(b.Name || '');
+    return (a.name || '').localeCompare(b.name || '');
   });
 };

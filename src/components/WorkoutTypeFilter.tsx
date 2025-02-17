@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { WorkoutLocation } from '@/types/workoutLocation';
+import { RawPointData } from '@/types/Points';
 
 interface WorkoutTypeFilterProps {
-  workouts: WorkoutLocation[];
-  onFilteredWorkouts: (workouts: WorkoutLocation[]) => void;
+  workouts: RawPointData[];
+  onFilteredWorkouts: (workouts: RawPointData[]) => void;
 }
 
 export function WorkoutTypeFilter({
@@ -23,8 +23,8 @@ export function WorkoutTypeFilter({
   const workoutTypes = useMemo(() => {
     const types = new Set<string>();
     workouts.forEach((workout) => {
-      if (workout.Type) {
-        types.add(workout.Type);
+      if (workout.type) {
+        types.add(workout.type);
       }
     });
     return Array.from(types).sort();
@@ -37,7 +37,7 @@ export function WorkoutTypeFilter({
 
     if (typeParam) {
       const filtered = workouts.filter(
-        (workout) => workout.Type?.toLowerCase() === typeParam
+        (workout) => workout.type?.toLowerCase() === typeParam
       );
       onFilteredWorkouts(filtered);
     } else {

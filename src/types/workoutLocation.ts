@@ -17,4 +17,5 @@ export interface WorkoutLocation {
   'Icon Color'?: string;
   'Custom Size'?: string;
   Image?: string;
+  // Add any missing properties here if needed
 }

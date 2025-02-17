@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { WorkoutLocation } from '@/types/workoutLocation';
 import { WorkoutCard } from '@/components/WorkoutCard';
+import { RawPointData } from '@/types/Points';
 
 interface WorkoutListProps {
-  workouts: WorkoutLocation[];
+  workouts: RawPointData[];
 }
 
 export function WorkoutList({ workouts }: WorkoutListProps) {
@@ -23,14 +23,14 @@ export function WorkoutList({ workouts }: WorkoutListProps) {
     // Apply day filter
     if (dayParam) {
       filtered = filtered.filter(
-        (workout) => workout.Group?.toLowerCase() === dayParam
+        (workout) => workout.group?.toLowerCase() === dayParam
       );
     }
 
     // Apply type filter
     if (typeParam) {
       filtered = filtered.filter(
-        (workout) => workout.Type?.toLowerCase() === typeParam
+        (workout) => workout.type?.toLowerCase() === typeParam
       );
     }
 
@@ -40,8 +40,8 @@ export function WorkoutList({ workouts }: WorkoutListProps) {
   return (
     <div>
       <div className="grid gap-4 md:grid-cols-2">
-        {filteredWorkouts.map((workout: WorkoutLocation) => (
-          <WorkoutCard key={workout['Entry ID']} workout={workout} />
+        {filteredWorkouts.map((workout: RawPointData) => (
+          <WorkoutCard key={workout.entryId} workout={workout} />
         ))}
       </div>
 

@@ -4,8 +4,8 @@
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import {
+  fetchRegions,
   fetchWorkoutLocationsByRegion,
-  fetchRegionSlugs,
 } from '@/utils/fetchWorkoutLocations';
 import { sortWorkoutsByDayAndTime } from '@/utils/workoutSorting';
 import { calculateMapParameters } from '@/utils/mapUtils';
@@ -18,15 +18,12 @@ interface RegionProps {
   }>;
 }
 
-export const revalidate = 3600; // Revalidate every hour
-
-// Generate static paths for all regions
-export async function generateStaticParams() {
-  const slugs = await fetchRegionSlugs();
-  return slugs.map((slug) => ({
-    regionSlug: slug,
+export const generateStaticParams = async () =>
+  (await fetchRegions()).map((region) => ({
+    id: region.id,
+    regionName: region.name,
+    regionSlug: region.slug,
   }));
-}
 
 export async function generateMetadata({
   params,
@@ -43,9 +40,9 @@ export async function generateMetadata({
     };
   }
 
-  const regionName = regionData[0].Region;
+  const regionName = regionData[0].region;
   const locations = regionData.map((workout) =>
-    extractCityAndState(workout.Location)
+    extractCityAndState(workout.location)
   );
   const uniqueLocations = [...new Set(locations)];
   const locationString =
@@ -68,16 +65,21 @@ export default async function RegionPage({
     notFound();
   }
 
-  const regionName = regionData[0].Region;
-  const website = regionData[0].Website;
-  const sortedWorkouts = sortWorkoutsByDayAndTime(regionData);
-  const mapParams = calculateMapParameters(regionData);
+  const regionName = regionData[0].region;
+  const website = regionData[0].website;
+  const mapParams = calculateMapParameters(
+    regionData.map(({ latitude, longitude, name }) => ({
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+      name,
+    }))
+  );
 
   return (
     <RegionContent
       regionName={regionName}
       website={website}
-      sortedWorkouts={sortedWorkouts}
+      sortedWorkouts={sortWorkoutsByDayAndTime(regionData)}
       mapParams={mapParams}
     />
   );

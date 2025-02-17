@@ -3,17 +3,17 @@
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { WorkoutLocation } from '@/types/workoutLocation';
 import { RegionHeader } from '@/components/RegionHeader';
 import { WorkoutList } from '@/components/WorkoutList';
 import { WorkoutFilters } from '@/components/WorkoutFilters';
 import { getMapUrl } from '@/utils/mapUtils';
 import type { MapParameters } from '@/utils/mapUtils';
+import { RawPointData } from '@/types/Points';
 
 interface RegionContentProps {
   regionName: string;
   website?: string;
-  sortedWorkouts: WorkoutLocation[];
+  sortedWorkouts: RawPointData[];
   mapParams: MapParameters;
 }
 
@@ -21,12 +21,13 @@ function FilteredContent({
   sortedWorkouts,
   mapParams,
 }: {
-  sortedWorkouts: WorkoutLocation[];
+  sortedWorkouts: RawPointData[];
   mapParams: MapParameters;
 }) {
   const searchParams = useSearchParams();
   const hasActiveFilters = searchParams.has('day') || searchParams.has('type');
-  const [filteredWorkouts, setFilteredWorkouts] = useState(sortedWorkouts);
+  const [filteredWorkouts, setFilteredWorkouts] =
+    useState<RawPointData[]>(sortedWorkouts);
   const mapUrl = getMapUrl(mapParams);
 
   return (

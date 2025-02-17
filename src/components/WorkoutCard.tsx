@@ -1,7 +1,7 @@
-import { WorkoutLocation } from '@/types/workoutLocation';
+import { RawPointData } from '@/types/Points';
 
 interface WorkoutCardProps {
-  workout: WorkoutLocation;
+  workout: RawPointData;
 }
 
 function sanitizeHtml(html: string): string {
@@ -23,21 +23,21 @@ function sanitizeHtml(html: string): string {
   );
 }
 
-function getGoogleMapsUrl(location: WorkoutLocation): string {
-  const { Latitude, Longitude } = location;
-  return `https://www.google.com/maps?q=${Latitude},${Longitude}`;
+function getGoogleMapsUrl(location: RawPointData): string {
+  const { latitude, longitude } = location;
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
 }
 
 export function WorkoutCard({ workout }: WorkoutCardProps) {
-  const notes = workout.Notes ? sanitizeHtml(workout.Notes) : '';
+  const notes = workout.notes ? sanitizeHtml(workout.notes) : '';
   const mapsUrl = getGoogleMapsUrl(workout);
 
   return (
     <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <div className="flex justify-between items-start mb-2">
-        <h3 className="text-lg font-semibold">{workout.Name}</h3>
+        <h3 className="text-lg font-semibold">{workout.name}</h3>
         <span className="text-sm text-gray-500 dark:text-gray-400">
-          {workout.Group}
+          {workout.group}
         </span>
       </div>
 
@@ -56,7 +56,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          {workout.Time}
+          {workout.time}
         </div>
         <a
           href={mapsUrl}
@@ -84,7 +84,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
             />
           </svg>
           <span className="hover:underline underline-offset-2">
-            {workout.Location}
+            {workout.location}
           </span>
           <svg
             className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -103,7 +103,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-3">
-        {workout.Type && (
+        {workout.type && (
           <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 flex items-center gap-1">
             <svg
               className="w-3 h-3"
@@ -118,7 +118,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
                 d="M13 10V3L4 14h7v7l9-11h-7z"
               />
             </svg>
-            {workout.Type}
+            {workout.type}
           </span>
         )}
       </div>
