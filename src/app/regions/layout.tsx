@@ -1,5 +1,5 @@
-import { Metadata } from "next";
-import { SITE_CONFIG } from "@/constants";
+import { Metadata } from 'next';
+import { SITE_CONFIG } from '@/constants';
 
 export const metadata: Metadata = {
   title: {
@@ -14,4 +14,4 @@ export default function RegionsLayout({
   children: React.ReactNode;
 }) {
   return children;
-} 
+}
