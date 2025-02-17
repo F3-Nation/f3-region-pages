@@ -1,32 +1,43 @@
-import { fetchPoints } from '../src/utils/fetchPoints';
+import { fetchRawPointsData } from '../src/utils/fetchRawPointsData';
 import { db } from '../drizzle/db';
-import { points, regions } from '../drizzle/schema';
+import { rawPoints, regions, workoutLocations } from '../drizzle/schema';
 import { toKebabCase } from '../src/utils/toKebabCase';
-import { Point } from '@/types/Point';
-import { Region } from '@/types/Region';
+import { RawPointData, RawPointDbItem } from '@/types/Points';
 
 async function seedDatabase() {
   try {
-    await db.delete(points);
+    await db.delete(workoutLocations);
+    await db.delete(rawPoints);
     await db.delete(regions);
 
-    const newPoints = await fetchPoints();
-    if (!newPoints) {
+    const rawPointsData = await fetchRawPointsData();
+    if (!rawPointsData) {
       console.error('No points data fetched.');
       return;
     }
-
     const newRegions = await db
       .insert(regions)
-      .values(getRegionsFromPoints(newPoints))
+      .values(getRegionsFromPoints(rawPointsData))
       .returning({ id: regions.id, name: regions.name });
-
-    const regionPoints = joinPointsToRegions(newPoints, newRegions);
-
+    const rawPointsDbItems = rawPointsData.map((point) => ({
+      entryId: point.entryId,
+      regionId: newRegions.find((r) => r.name === point.region)?.id,
+      data: point,
+    })) as RawPointDbItem[];
     const batchSize = 100;
-    for (let i = 0; i < regionPoints.length; i += batchSize) {
-      const batch = regionPoints.slice(i, i + batchSize);
-      await db.insert(points).values(batch);
+    for (let i = 0; i < rawPointsDbItems.length; i += batchSize) {
+      const batch = rawPointsDbItems.slice(i, i + batchSize);
+      const newPoints = await db
+        .insert(rawPoints)
+        .values(batch)
+        .returning({ id: rawPoints.id, entryId: rawPoints.entryId });
+      await db.insert(workoutLocations).values(
+        batch.map((point) => ({
+          regionId: point.regionId,
+          pointsId: newPoints.find((p) => p.entryId === point.entryId)?.id,
+          // TODO: add dimensional data to workout locations
+        }))
+      );
     }
 
     console.log('Database seeded successfully.');
@@ -35,27 +46,18 @@ async function seedDatabase() {
   }
 }
 
-function getRegionsFromPoints(points: Point[]) {
-  const regionNames = points.map((point) => {
-    return point.Region;
-  });
-  const uniqueRegionNames = [...new Set(regionNames)];
-  const newRegions = uniqueRegionNames.map((name) => {
-    return {
-      name,
-      slug: toKebabCase(name),
-    };
-  });
-  return newRegions;
-}
-
-function joinPointsToRegions(points: Point[], regions: Omit<Region, 'slug'>[]) {
-  return points.map((point) => {
-    return {
-      ...point,
-      regionId: regions.find((r) => r.name === point.Region)?.id,
-    };
-  });
-}
+const getRegionsFromPoints = (points: RawPointData[]) =>
+  [
+    ...new Set(
+      points
+        .filter((point) => !!point.region)
+        .map((point) => {
+          return point.region;
+        })
+    ),
+  ].map((name) => ({
+    name,
+    slug: toKebabCase(name),
+  }));
 
 seedDatabase();
