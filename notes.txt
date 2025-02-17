@@ -1,1 +1,0 @@
-now extend seed to translate points objects from the points schema/table into workoutlocations objects for the workoutlocations table; for context, I want you to loop through all regions and batch process on a region by region basis where you look up points per region and then do the translate and insert there so you can have the foreign keys readily available
