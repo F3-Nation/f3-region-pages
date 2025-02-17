@@ -2,7 +2,6 @@ import { loadEnvConfig } from '../lib/env';
 import type {
   RawPointsEnvelope,
   RawPointData,
-  RawPointDbItem,
   RawPointDataJsonKeys,
   RawPointDataJson,
 } from '../types/Points';
