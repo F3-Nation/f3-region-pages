@@ -26,6 +26,14 @@ steps:
       - '--platform=managed'
       - '--region=${_REGION}'
       - '--allow-unauthenticated'
+      - '--service-account=${_CLOUDSQL_SERVICE_ACCOUNT}'
+      - '--add-cloudsql-instances=${_CLOUDSQL_CONNECTION_NAME}'
       - '--set-env-vars=GOOGLE_SHEETS_JSON_URL=${_GOOGLE_SHEETS_JSON_URL},POSTGRES_URL=${_POSTGRES_URL}'
 images:
   - 'gcr.io/$PROJECT_ID/f3-region-pages'
+# Required substitution variables:
+# _GOOGLE_SHEETS_JSON_URL: URL to the Google Sheets JSON
+# _POSTGRES_URL: PostgreSQL connection string (format: postgresql://user:password@//dbname?host=/cloudsql/project:region:instance)
+# _REGION: Deployment region (e.g., us-central1)
+# _CLOUDSQL_SERVICE_ACCOUNT: Service account email for Cloud SQL access (e.g., f3-cloudsql-sa@project-id.iam.gserviceaccount.com)
+# _CLOUDSQL_CONNECTION_NAME: Cloud SQL instance connection name (format: project:region:instance)

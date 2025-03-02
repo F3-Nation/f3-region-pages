@@ -7,7 +7,17 @@ This guide explains how to deploy the F3 Region Pages application to Google Clou
 1. [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) installed and configured
 2. A Google Cloud project with billing enabled
 3. Container Registry and Cloud Run APIs enabled
-4. PostgreSQL database (either Cloud SQL or another provider)
+4. PostgreSQL database (either Cloud SQL or another provider) that is accessible from Cloud Run
+
+## Important Database Considerations
+
+Before deploying, ensure your database is properly configured:
+
+1. **Database Accessibility**: Your PostgreSQL database must be accessible from Cloud Run. Local databases (like those running on localhost) will not be accessible.
+
+2. **Database Migrations**: The application will attempt to run database migrations at startup. Make sure your database user has the necessary permissions to create and modify tables.
+
+3. **Connection String**: Update your `POSTGRES_URL` to point to a publicly accessible database or a Cloud SQL instance.
 
 ## Setup Steps
 
@@ -70,9 +80,7 @@ To set up continuous deployment:
 2. Create a trigger that runs on commits to your main branch
 3. Use the `cloudbuild.yaml` file in this repository
 
-## Database Considerations
-
-### Using Cloud SQL for PostgreSQL
+## Using Cloud SQL for PostgreSQL
 
 If you're using Cloud SQL:
 
@@ -80,13 +88,38 @@ If you're using Cloud SQL:
 2. Configure the connection using the Cloud SQL Auth Proxy or direct connection
 3. Update your `POSTGRES_URL` environment variable
 
-Example connection string format:
+Example connection string format for Cloud SQL:
 
 ```
 postgresql://username:password@/database?host=/cloudsql/project:region:instance
 ```
 
-### Private Networking
+For direct connection (less secure, but simpler):
+
+```
+postgresql://username:password@public-ip:5432/database
+```
+
+### Setting up Cloud SQL Auth Proxy with Cloud Run
+
+For secure connections to Cloud SQL:
+
+1. Create a service account with Cloud SQL Client role
+2. Deploy Cloud Run with this service account
+3. Add the Cloud SQL connection to your Cloud Run service
+
+```bash
+gcloud run deploy f3-region-pages \
+  --image gcr.io/your-project-id/f3-region-pages \
+  --platform managed \
+  --region your-region \
+  --allow-unauthenticated \
+  --set-env-vars="GOOGLE_SHEETS_JSON_URL=your-google-sheets-json-url,POSTGRES_URL=your-postgres-connection-string" \
+  --service-account=your-service-account@your-project.iam.gserviceaccount.com \
+  --add-cloudsql-instances=your-project:your-region:your-instance
+```
+
+## Private Networking
 
 For enhanced security, consider:
 
@@ -110,3 +143,4 @@ Common issues:
 - **Database connection issues**: Verify connection string and network settings
 - **Environment variables missing**: Ensure all required variables are set
 - **Permission errors**: Check IAM roles and service account permissions
+- **Migration failures**: Check if the database user has sufficient permissions

@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run db:migrate && npm run db:seed && next build",
+    "next:build": "next build",
     "start": "next start",
+    "start:with-migrations": "npm run db:migrate && npm run db:seed && next start",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -20,7 +22,9 @@
     "db:seed": "bun scripts/seed.ts",
     "docker:kill": "scripts/docker-kill.sh",
     "supabase:start": "supabase start",
-    "deploy": "scripts/deploy.sh"
+    "deploy": "npm run deploy:cloud-sql && npm run deploy:cloud-run",
+    "deploy:cloud-run": "scripts/deploy-cloud-run.sh",
+    "deploy:cloud-sql": "scripts/deploy-cloud-sql.sh"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
