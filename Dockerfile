@@ -7,8 +7,14 @@ ARG GOOGLE_SHEETS_JSON_URL
 ARG POSTGRES_URL
 
 # Set environment variables for build
-ENV GOOGLE_SHEETS_JSON_URL=$GOOGLE_SHEETS_JSON_URL
-ENV POSTGRES_URL=$POSTGRES_URL
+ENV GOOGLE_SHEETS_JSON_URL=${GOOGLE_SHEETS_JSON_URL}
+ENV POSTGRES_URL=${POSTGRES_URL}
+
+# Print environment variables for debugging (masked for security)
+RUN echo "Build environment:" && \
+    echo "GOOGLE_SHEETS_JSON_URL: $(echo "$GOOGLE_SHEETS_JSON_URL" | cut -c 1-10)...$(echo "$GOOGLE_SHEETS_JSON_URL" | rev | cut -c 1-10 | rev)" && \
+    MASKED_DB_URL=$(echo "$POSTGRES_URL" | sed 's/:[^:\/\/]*@/:*****@/') && \
+    echo "POSTGRES_URL: $MASKED_DB_URL"
 
 COPY package*.json ./
 RUN npm install
@@ -23,8 +29,16 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Runtime environment variables
-ENV GOOGLE_SHEETS_JSON_URL=$GOOGLE_SHEETS_JSON_URL
-ENV POSTGRES_URL=$POSTGRES_URL
+ARG GOOGLE_SHEETS_JSON_URL
+ARG POSTGRES_URL
+ENV GOOGLE_SHEETS_JSON_URL=${GOOGLE_SHEETS_JSON_URL}
+ENV POSTGRES_URL=${POSTGRES_URL}
+
+# Print environment variables for debugging (masked for security)
+RUN echo "Runtime environment:" && \
+    echo "GOOGLE_SHEETS_JSON_URL: $(echo "$GOOGLE_SHEETS_JSON_URL" | cut -c 1-10)...$(echo "$GOOGLE_SHEETS_JSON_URL" | rev | cut -c 1-10 | rev)" && \
+    MASKED_DB_URL=$(echo "$POSTGRES_URL" | sed 's/:[^:\/\/]*@/:*****@/') && \
+    echo "POSTGRES_URL: $MASKED_DB_URL"
 
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/.next ./.next

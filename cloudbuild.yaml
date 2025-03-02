@@ -1,4 +1,36 @@
 steps:
+  # Load environment variables from .env.prod
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ -f .env.prod ]; then
+          echo "Loading environment variables from .env.prod"
+          export $(grep -v '^#' .env.prod | xargs)
+          # Export variables to subsequent steps
+          echo "POSTGRES_URL=$$POSTGRES_URL" >> /workspace/build.env
+          echo "GOOGLE_SHEETS_JSON_URL=$$GOOGLE_SHEETS_JSON_URL" >> /workspace/build.env
+          echo "Using environment variables from .env.prod"
+        else
+          echo "Warning: .env.prod file not found. Using substitution variables."
+          # Use substitution variables as fallback
+          echo "POSTGRES_URL=${_POSTGRES_URL}" >> /workspace/build.env
+          echo "GOOGLE_SHEETS_JSON_URL=${_GOOGLE_SHEETS_JSON_URL}" >> /workspace/build.env
+        fi
+
+        # Extract Cloud SQL connection name if present
+        if [[ "$$POSTGRES_URL" == *"/cloudsql/"* ]]; then
+          CLOUDSQL_INSTANCE=$(echo "$$POSTGRES_URL" | sed -n 's/.*\/cloudsql\/\([^?]*\).*/\1/p')
+          echo "CLOUDSQL_INSTANCE=$$CLOUDSQL_INSTANCE" >> /workspace/build.env
+          echo "Detected Cloud SQL instance: $$CLOUDSQL_INSTANCE"
+        elif [[ "${_POSTGRES_URL}" == *"/cloudsql/"* ]]; then
+          CLOUDSQL_INSTANCE=$(echo "${_POSTGRES_URL}" | sed -n 's/.*\/cloudsql\/\([^?]*\).*/\1/p')
+          echo "CLOUDSQL_INSTANCE=$$CLOUDSQL_INSTANCE" >> /workspace/build.env
+          echo "Detected Cloud SQL instance from substitution variables: $$CLOUDSQL_INSTANCE"
+        fi
+
+  # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
@@ -11,27 +43,46 @@ steps:
         'gcr.io/$PROJECT_ID/f3-region-pages',
         '.',
       ]
+    env:
+      - 'DOCKER_BUILDKIT=1'
+
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/f3-region-pages']
 
   # Deploy container image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
+    entrypoint: 'bash'
     args:
-      - 'run'
-      - 'deploy'
-      - 'f3-region-pages'
-      - '--image=gcr.io/$PROJECT_ID/f3-region-pages'
-      - '--platform=managed'
-      - '--region=${_REGION}'
-      - '--allow-unauthenticated'
-      - '--service-account=${_CLOUDSQL_SERVICE_ACCOUNT}'
-      - '--add-cloudsql-instances=${_CLOUDSQL_CONNECTION_NAME}'
-      - '--set-env-vars=GOOGLE_SHEETS_JSON_URL=${_GOOGLE_SHEETS_JSON_URL},POSTGRES_URL=${_POSTGRES_URL}'
+      - '-c'
+      - |
+        source /workspace/build.env
+
+        DEPLOY_CMD="gcloud run deploy f3-region-pages \
+          --image=gcr.io/$PROJECT_ID/f3-region-pages \
+          --platform=managed \
+          --region=${_REGION} \
+          --allow-unauthenticated \
+          --set-env-vars=GOOGLE_SHEETS_JSON_URL=$$GOOGLE_SHEETS_JSON_URL,POSTGRES_URL=$$POSTGRES_URL"
+
+        # Add Cloud SQL instance if detected
+        if [ ! -z "$$CLOUDSQL_INSTANCE" ]; then
+          # Use service account if provided
+          if [ ! -z "${_CLOUDSQL_SERVICE_ACCOUNT}" ]; then
+            DEPLOY_CMD="$$DEPLOY_CMD --service-account=${_CLOUDSQL_SERVICE_ACCOUNT} --add-cloudsql-instances=$$CLOUDSQL_INSTANCE"
+            echo "Using Cloud SQL instance: $$CLOUDSQL_INSTANCE with service account: ${_CLOUDSQL_SERVICE_ACCOUNT}"
+          else
+            echo "Warning: Cloud SQL instance detected but no service account provided."
+            echo "Add _CLOUDSQL_SERVICE_ACCOUNT to your build trigger variables."
+          fi
+        fi
+
+        # Execute the deployment command
+        eval $$DEPLOY_CMD
+
 images:
   - 'gcr.io/$PROJECT_ID/f3-region-pages'
-# Required substitution variables:
+# Substitution variables (used as fallback if .env.prod is not available):
 # _GOOGLE_SHEETS_JSON_URL: URL to the Google Sheets JSON
 # _POSTGRES_URL: PostgreSQL connection string (format: postgresql://user:password@//dbname?host=/cloudsql/project:region:instance)
 # _REGION: Deployment region (e.g., us-central1)

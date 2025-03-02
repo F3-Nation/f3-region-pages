@@ -293,6 +293,91 @@ echo -e "${GREEN}For Cloud Run (private):${NC} $PRIVATE_CONNECTION_STRING"
 echo -e "${GREEN}For external access (public):${NC} $PUBLIC_CONNECTION_STRING"
 echo -e "${GREEN}Service Account:${NC} $SERVICE_ACCOUNT_EMAIL"
 
+# 🟠 TODO: move GOOGLE_SHEETS_JSON_URL logic to another script
+# to keep this script focused on creating the Cloud SQL instance
+
+# Check for GOOGLE_SHEETS_JSON_URL in .env.local
+echo -e "\n${YELLOW}=== Checking for GOOGLE_SHEETS_JSON_URL in .env.local ====${NC}"
+GOOGLE_SHEETS_JSON_URL=""
+ENV_LOCAL_FILE=".env.local"
+
+if [ -f "$ENV_LOCAL_FILE" ]; then
+  echo -e "Found $ENV_LOCAL_FILE, extracting GOOGLE_SHEETS_JSON_URL..."
+  # Extract GOOGLE_SHEETS_JSON_URL from .env.local if it exists
+  if grep -q "^GOOGLE_SHEETS_JSON_URL=" "$ENV_LOCAL_FILE"; then
+    GOOGLE_SHEETS_JSON_URL=$(grep "^GOOGLE_SHEETS_JSON_URL=" "$ENV_LOCAL_FILE" | cut -d '=' -f 2-)
+    echo -e "${GREEN}Successfully extracted GOOGLE_SHEETS_JSON_URL from $ENV_LOCAL_FILE${NC}"
+    # Mask the URL for security in logs
+    MASKED_URL="${GOOGLE_SHEETS_JSON_URL:0:10}...${GOOGLE_SHEETS_JSON_URL: -10}"
+    echo -e "Found GOOGLE_SHEETS_JSON_URL: $MASKED_URL"
+  else
+    echo -e "${YELLOW}GOOGLE_SHEETS_JSON_URL not found in $ENV_LOCAL_FILE${NC}"
+  fi
+else
+  echo -e "${YELLOW}$ENV_LOCAL_FILE not found${NC}"
+fi
+
+# Create or update .env.prod file with the connection information
+echo -e "\n${YELLOW}=== Creating/updating .env.prod file with database connection ====${NC}"
+ENV_PROD_FILE=".env.prod"
+
+# Check if .env.prod exists and create a backup if it does
+if [ -f "$ENV_PROD_FILE" ]; then
+  BACKUP_FILE="${ENV_PROD_FILE}.bak.$(date +%Y%m%d%H%M%S)"
+  echo -e "Creating backup of existing $ENV_PROD_FILE to $BACKUP_FILE"
+  cp "$ENV_PROD_FILE" "$BACKUP_FILE"
+fi
+
+# Create or update .env.prod file
+echo -e "Updating $ENV_PROD_FILE with Cloud SQL connection information"
+
+# If .env.prod exists, update the POSTGRES_URL line or add it if it doesn't exist
+if [ -f "$ENV_PROD_FILE" ]; then
+  # Check if POSTGRES_URL exists in the file
+  if grep -q "^POSTGRES_URL=" "$ENV_PROD_FILE"; then
+    # Replace the existing POSTGRES_URL line
+    sed -i.tmp "s|^POSTGRES_URL=.*|POSTGRES_URL=$PRIVATE_CONNECTION_STRING|" "$ENV_PROD_FILE"
+    rm -f "${ENV_PROD_FILE}.tmp"
+  else
+    # Add POSTGRES_URL to the file
+    echo "POSTGRES_URL=$PRIVATE_CONNECTION_STRING" >> "$ENV_PROD_FILE"
+  fi
+  
+  # Check if GOOGLE_SHEETS_JSON_URL exists in .env.prod
+  if [ ! -z "$GOOGLE_SHEETS_JSON_URL" ]; then
+    if grep -q "^GOOGLE_SHEETS_JSON_URL=" "$ENV_PROD_FILE"; then
+      # Replace the existing GOOGLE_SHEETS_JSON_URL line
+      sed -i.tmp "s|^GOOGLE_SHEETS_JSON_URL=.*|GOOGLE_SHEETS_JSON_URL=$GOOGLE_SHEETS_JSON_URL|" "$ENV_PROD_FILE"
+      rm -f "${ENV_PROD_FILE}.tmp"
+      echo -e "${GREEN}Updated GOOGLE_SHEETS_JSON_URL in $ENV_PROD_FILE${NC}"
+    else
+      # Add GOOGLE_SHEETS_JSON_URL to the file
+      echo "GOOGLE_SHEETS_JSON_URL=$GOOGLE_SHEETS_JSON_URL" >> "$ENV_PROD_FILE"
+      echo -e "${GREEN}Added GOOGLE_SHEETS_JSON_URL to $ENV_PROD_FILE${NC}"
+    fi
+  fi
+else
+  # Create a new .env.prod file with POSTGRES_URL
+  echo "# Production environment variables - Created by deploy-db.sh" > "$ENV_PROD_FILE"
+  echo "# Last updated: $(date)" >> "$ENV_PROD_FILE"
+  echo "POSTGRES_URL=$PRIVATE_CONNECTION_STRING" >> "$ENV_PROD_FILE"
+  
+  # Add GOOGLE_SHEETS_JSON_URL if available
+  if [ ! -z "$GOOGLE_SHEETS_JSON_URL" ]; then
+    echo "GOOGLE_SHEETS_JSON_URL=$GOOGLE_SHEETS_JSON_URL" >> "$ENV_PROD_FILE"
+    echo -e "${GREEN}Added GOOGLE_SHEETS_JSON_URL to $ENV_PROD_FILE${NC}"
+  else
+    echo "# Add your GOOGLE_SHEETS_JSON_URL below" >> "$ENV_PROD_FILE"
+    echo "# GOOGLE_SHEETS_JSON_URL=your-google-sheets-json-url" >> "$ENV_PROD_FILE"
+    echo -e "${YELLOW}GOOGLE_SHEETS_JSON_URL not available. Added placeholder to $ENV_PROD_FILE${NC}"
+  fi
+fi
+
+echo -e "${GREEN}Successfully updated $ENV_PROD_FILE with Cloud SQL connection information${NC}"
+if [ -z "$GOOGLE_SHEETS_JSON_URL" ]; then
+  echo -e "${YELLOW}Note: You need to add GOOGLE_SHEETS_JSON_URL to $ENV_PROD_FILE${NC}"
+fi
+
 # Instructions for updating Cloud Run deployment
 echo -e "\n${YELLOW}=== Next Steps ===${NC}"
 echo -e "1. Update your Cloud Run deployment with the following command:"
@@ -319,6 +404,10 @@ echo -e "   ${GREEN}gcloud auth application-default login${NC}"
 echo -e "   ${GREEN}cloud_sql_proxy -instances=$INSTANCE_CONNECTION_NAME=tcp:5432${NC}"
 echo -e "   Then use: ${GREEN}postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME${NC}"
 
+echo -e "\n4. To deploy your app using the updated .env.prod file:"
+echo -e "   ${GREEN}./scripts/deploy-app.sh --env-file .env.prod${NC}"
+echo -e "   Or simply: ${GREEN}./scripts/deploy-all.sh${NC}"
+
 # Save connection information to a file for reference
 echo -e "\n${YELLOW}Saving connection information to cloud-sql-info.txt${NC}"
 {
@@ -343,4 +432,5 @@ echo -e "\n${YELLOW}Saving connection information to cloud-sql-info.txt${NC}"
 } > cloud-sql-info.txt
 
 echo -e "${YELLOW}Note: Keep cloud-sql-info.txt secure as it contains sensitive information.${NC}"
+
 echo -e "\n=== Cloud SQL deployment script completed at $(date) ===\n"
