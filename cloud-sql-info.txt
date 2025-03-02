@@ -3,16 +3,16 @@ Instance Name: f3-region-pages-db
 Instance Connection Name: region-pages:us-central1:f3-region-pages-db
 Database Name: f3_region_pages
 Database User: f3_app_user
-Database Password: eBNiV5V8Uvh/qLvxrpJEVA==
+Database Password: F7yLJSaXRKPFMRR1FMcOIg==
 Public IP: 146.148.87.122
 
 === Connection Strings ===
-For Cloud Run (private): postgresql://f3_app_user:eBNiV5V8Uvh/qLvxrpJEVA==@//f3_region_pages?host=/cloudsql/region-pages:us-central1:f3-region-pages-db
-For external access (public): postgresql://f3_app_user:eBNiV5V8Uvh/qLvxrpJEVA==@146.148.87.122:5432/f3_region_pages
+For Cloud Run (private): postgresql://f3_app_user:F7yLJSaXRKPFMRR1FMcOIg==@//f3_region_pages?host=/cloudsql/region-pages:us-central1:f3-region-pages-db
+For external access (public): postgresql://f3_app_user:F7yLJSaXRKPFMRR1FMcOIg==@146.148.87.122:5432/f3_region_pages
 Service Account: f3-cloudsql-sa@region-pages.iam.gserviceaccount.com
 
 === Cloud Build Substitution Variables ===
-_POSTGRES_URL: postgresql://f3_app_user:eBNiV5V8Uvh/qLvxrpJEVA==@//f3_region_pages?host=/cloudsql/region-pages:us-central1:f3-region-pages-db
+_POSTGRES_URL: postgresql://f3_app_user:F7yLJSaXRKPFMRR1FMcOIg==@//f3_region_pages?host=/cloudsql/region-pages:us-central1:f3-region-pages-db
 _CLOUDSQL_SERVICE_ACCOUNT: f3-cloudsql-sa@region-pages.iam.gserviceaccount.com
 _CLOUDSQL_CONNECTION_NAME: region-pages:us-central1:f3-region-pages-db
 _REGION: us-central1 (if not already set)

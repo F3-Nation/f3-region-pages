@@ -24,7 +24,9 @@
     "supabase:start": "supabase start",
     "deploy:app": "scripts/deploy-app.sh",
     "deploy:db": "scripts/deploy-db.sh",
-    "deploy": "scripts/deploy-all.sh"
+    "deploy:all": "scripts/deploy-all.sh",
+    "deploy:all:interactive": "scripts/deploy-all.sh --interactive",
+    "deploy": "npm run deploy:all"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

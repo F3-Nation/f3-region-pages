@@ -17,6 +17,7 @@ PROJECT_ID=$(gcloud config get-value project)
 REGION=${REGION:-"us-central1"}
 SERVICE_NAME="f3-region-pages"
 IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+INTERACTIVE=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -42,6 +43,10 @@ while [[ $# -gt 0 ]]; do
       shift
       shift
       ;;
+    --interactive)
+      INTERACTIVE=true
+      shift
+      ;;
     --help)
       echo "Usage: ./scripts/deploy-app.sh [options]"
       echo ""
@@ -50,6 +55,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --region REGION         Google Cloud region (default: us-central1)"
       echo "  --service-name NAME     Cloud Run service name (default: f3-region-pages)"
       echo "  --env-file FILE         Environment file to use (default: .env.prod or .env.local)"
+      echo "  --interactive           Enable interactive prompts (default: non-interactive)"
       echo "  --help                  Show this help message"
       exit 0
       ;;
@@ -95,11 +101,15 @@ gcloud services enable cloudbuild.googleapis.com run.googleapis.com containerreg
 echo "⚠️  Important: Make sure your POSTGRES_URL points to a publicly accessible database or a Cloud SQL instance."
 echo "   Local database connections will not work in Cloud Run."
 echo ""
-read -p "Continue with deployment? (y/n) " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  echo "Deployment cancelled."
-  exit 1
+
+# Only prompt for confirmation in interactive mode
+if [ "$INTERACTIVE" = true ]; then
+  read -p "Continue with deployment? (y/n) " -n 1 -r
+  echo ""
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Deployment cancelled."
+    exit 1
+  fi
 fi
 
 # Debug: Print environment variables (masked for security)

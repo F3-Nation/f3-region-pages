@@ -49,12 +49,12 @@ COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 
-# Cloud Run will set PORT environment variable
-ENV PORT=3000
-EXPOSE $PORT
+# Cloud Run will set PORT environment variable - default to 8080 if not set
+ENV PORT=8080
+EXPOSE 8080
 
 # Use the non-root user for better security
 USER node
 
-# Run migrations at startup and then start the app
-CMD ["npm", "run", "start:with-migrations"]
+# Directly use the CMD instruction with the command to start Next.js
+CMD ["npx", "next", "start", "-p", "8080"]

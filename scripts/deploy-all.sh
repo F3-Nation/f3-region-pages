@@ -24,6 +24,11 @@ else
     echo -e "Authenticated as: $GCLOUD_AUTH"
 fi
 
+# Default values
+SKIP_DB=false
+SKIP_APP=false
+INTERACTIVE=false
+
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -36,13 +41,18 @@ while [[ $# -gt 0 ]]; do
       SKIP_APP=true
       shift
       ;;
+    --interactive)
+      INTERACTIVE=true
+      shift
+      ;;
     --help)
       echo "Usage: ./scripts/deploy-all.sh [options]"
       echo ""
       echo "Options:"
-      echo "  --skip-db     Skip database deployment"
-      echo "  --skip-app    Skip application deployment"
-      echo "  --help        Show this help message"
+      echo "  --skip-db          Skip database deployment"
+      echo "  --skip-app         Skip application deployment"
+      echo "  --interactive      Enable interactive prompts (default: non-interactive)"
+      echo "  --help             Show this help message"
       exit 0
       ;;
     *)
@@ -82,11 +92,17 @@ else
     echo -e "This file is required for application deployment."
     echo -e "You can create it manually or run without the --skip-db flag."
     
-    read -p "Continue anyway? (y/n) " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      echo "Deployment cancelled."
+    # In non-interactive mode, exit with error if .env.prod doesn't exist
+    if [ "$INTERACTIVE" = false ]; then
+      echo -e "${RED}Error: Cannot continue in non-interactive mode without .env.prod file.${NC}"
       exit 1
+    else
+      read -p "Continue anyway? (y/n) " -n 1 -r
+      echo ""
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Deployment cancelled."
+        exit 1
+      fi
     fi
   fi
 fi
@@ -100,20 +116,30 @@ if [ "$SKIP_APP" != "true" ]; then
     echo -e "${YELLOW}Warning: GOOGLE_SHEETS_JSON_URL is not set in .env.prod${NC}"
     echo -e "This environment variable is required for the application to function properly."
     
-    # Prompt for GOOGLE_SHEETS_JSON_URL if not set
-    read -p "Enter GOOGLE_SHEETS_JSON_URL: " GOOGLE_SHEETS_JSON_URL
-    if [ -z "$GOOGLE_SHEETS_JSON_URL" ]; then
-      echo -e "${RED}Error: GOOGLE_SHEETS_JSON_URL cannot be empty.${NC}"
+    # In non-interactive mode, exit with error if GOOGLE_SHEETS_JSON_URL is missing
+    if [ "$INTERACTIVE" = false ]; then
+      echo -e "${RED}Error: Cannot continue in non-interactive mode without GOOGLE_SHEETS_JSON_URL in .env.prod.${NC}"
       exit 1
+    else
+      # Prompt for GOOGLE_SHEETS_JSON_URL if not set
+      read -p "Enter GOOGLE_SHEETS_JSON_URL: " GOOGLE_SHEETS_JSON_URL
+      if [ -z "$GOOGLE_SHEETS_JSON_URL" ]; then
+        echo -e "${RED}Error: GOOGLE_SHEETS_JSON_URL cannot be empty.${NC}"
+        exit 1
+      fi
+      
+      # Add GOOGLE_SHEETS_JSON_URL to .env.prod
+      echo "GOOGLE_SHEETS_JSON_URL=$GOOGLE_SHEETS_JSON_URL" >> .env.prod
+      echo -e "${GREEN}Added GOOGLE_SHEETS_JSON_URL to .env.prod${NC}"
     fi
-    
-    # Add GOOGLE_SHEETS_JSON_URL to .env.prod
-    echo "GOOGLE_SHEETS_JSON_URL=$GOOGLE_SHEETS_JSON_URL" >> .env.prod
-    echo -e "${GREEN}Added GOOGLE_SHEETS_JSON_URL to .env.prod${NC}"
   fi
   
   # Run the application deployment script with .env.prod
-  ./scripts/deploy-app.sh --env-file .env.prod
+  if [ "$INTERACTIVE" = true ]; then
+    ./scripts/deploy-app.sh --env-file .env.prod --interactive
+  else
+    ./scripts/deploy-app.sh --env-file .env.prod
+  fi
   
   echo -e "${GREEN}Application deployment completed successfully!${NC}"
 else
