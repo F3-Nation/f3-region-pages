@@ -41,6 +41,13 @@ function FilteredContent({
         </Suspense>
       </div>
 
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4">Workouts</h2>
+        <Suspense fallback={<div>Loading workouts...</div>}>
+          <WorkoutList workouts={filteredWorkouts} />
+        </Suspense>
+      </div>
+
       {!hasActiveFilters && (
         <div className="mb-8">
           <iframe
@@ -52,13 +59,6 @@ function FilteredContent({
           />
         </div>
       )}
-
-      <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Workouts</h2>
-        <Suspense fallback={<div>Loading workouts...</div>}>
-          <WorkoutList workouts={filteredWorkouts} />
-        </Suspense>
-      </div>
     </>
   );
 }
