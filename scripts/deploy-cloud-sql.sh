@@ -66,34 +66,31 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Enable the Cloud SQL Admin API if not already enabled
+echo -e "\n=== Enabling Cloud SQL Admin API ==="
+echo -e "Running: gcloud services enable sqladmin.googleapis.com"
+gcloud services enable sqladmin.googleapis.com
+echo -e "Cloud SQL Admin API enabled"
+
 echo -e "\n${YELLOW}Creating Cloud SQL PostgreSQL instance...${NC}"
 echo -e "${YELLOW}This may take several minutes...${NC}"
 
-# Check if instance already exists
+# Check if instance already exists using a more reliable approach
 echo -e "\n=== Checking if instance already exists ==="
 echo -e "Running: gcloud sql instances describe $INSTANCE_NAME"
-echo -e "If this step hangs, press Ctrl+C and check your gcloud authentication and network connection"
 
-# Add timeout to prevent indefinite hanging
-timeout_seconds=30
-if timeout $timeout_seconds gcloud sql instances describe $INSTANCE_NAME --project=$PROJECT_ID &>/dev/null; then
+# Use a function to check if the instance exists
+check_instance_exists() {
+  gcloud sql instances describe $INSTANCE_NAME --project=$PROJECT_ID &>/dev/null
+  return $?
+}
+
+if check_instance_exists; then
   echo -e "${YELLOW}Instance $INSTANCE_NAME already exists. Skipping creation.${NC}"
   INSTANCE_EXISTS=true
 else
-  # Check if it was a timeout or the instance doesn't exist
-  exit_code=$?
-  if [ $exit_code -eq 124 ]; then
-    echo -e "${RED}Command timed out after $timeout_seconds seconds.${NC}"
-    echo -e "${RED}This could indicate network issues or permission problems.${NC}"
-    echo -e "Try running this command manually to debug:"
-    echo -e "gcloud sql instances describe $INSTANCE_NAME --project=$PROJECT_ID"
-    echo -e "\nVerify your internet connection and gcloud authentication."
-    echo -e "You may need to run: gcloud auth login"
-    exit 1
-  else
-    echo -e "Instance does not exist. Creating new instance..."
-    INSTANCE_EXISTS=false
-  fi
+  echo -e "Instance does not exist. Creating new instance..."
+  INSTANCE_EXISTS=false
 fi
 
 if [ "$INSTANCE_EXISTS" = false ]; then
@@ -101,6 +98,8 @@ if [ "$INSTANCE_EXISTS" = false ]; then
   echo -e "Running: gcloud sql instances create $INSTANCE_NAME"
   echo -e "This step typically takes 5-10 minutes. Please be patient..."
   
+  # Use set +e to prevent script from exiting if the command fails
+  set +e
   gcloud sql instances create $INSTANCE_NAME \
     --database-version=$DB_VERSION \
     --tier=$TIER \
@@ -110,47 +109,93 @@ if [ "$INSTANCE_EXISTS" = false ]; then
     --availability-type=ZONAL \
     --root-password=$DB_PASSWORD \
     --project=$PROJECT_ID
-
-  echo -e "${GREEN}Cloud SQL instance created successfully!${NC}"
+  
+  create_exit_code=$?
+  set -e
+  
+  # Check if creation failed because instance already exists
+  if [ $create_exit_code -ne 0 ]; then
+    if check_instance_exists; then
+      echo -e "${YELLOW}Instance $INSTANCE_NAME already exists (created in a previous run). Continuing...${NC}"
+      INSTANCE_EXISTS=true
+    else
+      echo -e "${RED}Failed to create Cloud SQL instance. Exiting.${NC}"
+      exit 1
+    fi
+  else
+    echo -e "${GREEN}Cloud SQL instance created successfully!${NC}"
+  fi
 fi
+
+# Function to check if database exists
+check_database_exists() {
+  gcloud sql databases list --instance=$INSTANCE_NAME --project=$PROJECT_ID | grep -q $DB_NAME
+  return $?
+}
 
 # Create database if it doesn't exist
 echo -e "\n=== Checking if database $DB_NAME exists ==="
 echo -e "Running: gcloud sql databases list --instance=$INSTANCE_NAME"
-if ! timeout $timeout_seconds gcloud sql databases list --instance=$INSTANCE_NAME --project=$PROJECT_ID | grep -q $DB_NAME; then
-  exit_code=$?
-  if [ $exit_code -eq 124 ]; then
-    echo -e "${RED}Command timed out after $timeout_seconds seconds.${NC}"
-    echo -e "${RED}This could indicate network issues or permission problems.${NC}"
-    exit 1
-  fi
-  
+
+set +e
+if ! check_database_exists; then
   echo -e "Database does not exist. Creating database $DB_NAME..."
   echo -e "Running: gcloud sql databases create $DB_NAME"
+  
   gcloud sql databases create $DB_NAME --instance=$INSTANCE_NAME --project=$PROJECT_ID
-  echo -e "${GREEN}Database $DB_NAME created successfully!${NC}"
+  
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}Database $DB_NAME created successfully!${NC}"
+  else
+    # Check if database was created despite error
+    if check_database_exists; then
+      echo -e "${YELLOW}Database $DB_NAME already exists. Continuing...${NC}"
+    else
+      echo -e "${RED}Failed to create database. Exiting.${NC}"
+      exit 1
+    fi
+  fi
 else
   echo -e "${YELLOW}Database $DB_NAME already exists. Skipping creation.${NC}"
 fi
+set -e
+
+# Function to check if user exists
+check_user_exists() {
+  gcloud sql users list --instance=$INSTANCE_NAME --project=$PROJECT_ID | grep -q $DB_USER
+  return $?
+}
 
 # Create user if it doesn't exist
 echo -e "\n=== Checking if user $DB_USER exists ==="
 echo -e "Running: gcloud sql users list --instance=$INSTANCE_NAME"
-if ! timeout $timeout_seconds gcloud sql users list --instance=$INSTANCE_NAME --project=$PROJECT_ID | grep -q $DB_USER; then
-  exit_code=$?
-  if [ $exit_code -eq 124 ]; then
-    echo -e "${RED}Command timed out after $timeout_seconds seconds.${NC}"
-    echo -e "${RED}This could indicate network issues or permission problems.${NC}"
-    exit 1
-  fi
-  
+
+set +e
+if ! check_user_exists; then
   echo -e "User does not exist. Creating user $DB_USER..."
   echo -e "Running: gcloud sql users create $DB_USER"
+  
   gcloud sql users create $DB_USER \
     --instance=$INSTANCE_NAME \
     --password=$DB_PASSWORD \
     --project=$PROJECT_ID
-  echo -e "${GREEN}User $DB_USER created successfully!${NC}"
+  
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}User $DB_USER created successfully!${NC}"
+  else
+    # Check if user was created despite error
+    if check_user_exists; then
+      echo -e "${YELLOW}User $DB_USER already exists. Updating password...${NC}"
+      gcloud sql users set-password $DB_USER \
+        --instance=$INSTANCE_NAME \
+        --password=$DB_PASSWORD \
+        --project=$PROJECT_ID
+      echo -e "${GREEN}Password updated successfully!${NC}"
+    else
+      echo -e "${RED}Failed to create user. Exiting.${NC}"
+      exit 1
+    fi
+  fi
 else
   echo -e "${YELLOW}User $DB_USER already exists. Updating password...${NC}"
   echo -e "Running: gcloud sql users set-password $DB_USER"
@@ -160,6 +205,7 @@ else
     --project=$PROJECT_ID
   echo -e "${GREEN}Password updated successfully!${NC}"
 fi
+set -e
 
 # Get the instance connection name
 echo -e "\n=== Getting instance connection details ==="
@@ -169,13 +215,15 @@ echo -e "Instance Connection Name: $INSTANCE_CONNECTION_NAME"
 # Get the public IP address of the instance
 echo -e "Getting public IP address..."
 echo -e "Running: gcloud sql instances describe $INSTANCE_NAME"
-PUBLIC_IP=$(timeout $timeout_seconds gcloud sql instances describe $INSTANCE_NAME --project=$PROJECT_ID --format='value(ipAddresses[0].ipAddress)')
-exit_code=$?
-if [ $exit_code -eq 124 ]; then
-  echo -e "${RED}Command timed out after $timeout_seconds seconds.${NC}"
-  echo -e "${RED}Using placeholder for PUBLIC_IP as command timed out.${NC}"
-  PUBLIC_IP="<command-timed-out>"
+
+set +e
+PUBLIC_IP=$(gcloud sql instances describe $INSTANCE_NAME --project=$PROJECT_ID --format='value(ipAddresses[0].ipAddress)')
+if [ -z "$PUBLIC_IP" ]; then
+  echo -e "${YELLOW}Could not retrieve public IP. Using placeholder.${NC}"
+  PUBLIC_IP="<could-not-retrieve>"
 fi
+set -e
+
 echo -e "Public IP: $PUBLIC_IP"
 
 # Generate connection strings
@@ -187,35 +235,42 @@ echo -e "Connection strings generated"
 # Configure the instance for Cloud Run
 echo -e "\n=== Configuring Cloud SQL instance for Cloud Run ==="
 
-# Enable the Cloud SQL Admin API if not already enabled
-echo -e "Enabling Cloud SQL Admin API..."
-echo -e "Running: gcloud services enable sqladmin.googleapis.com"
-gcloud services enable sqladmin.googleapis.com
-echo -e "Cloud SQL Admin API enabled"
-
 # Create a service account for Cloud Run to access Cloud SQL if it doesn't exist
 SERVICE_ACCOUNT_NAME="f3-cloudsql-sa"
 SERVICE_ACCOUNT_EMAIL="$SERVICE_ACCOUNT_NAME@$PROJECT_ID.iam.gserviceaccount.com"
 echo -e "\n=== Checking if service account $SERVICE_ACCOUNT_NAME exists ==="
 echo -e "Running: gcloud iam service-accounts describe $SERVICE_ACCOUNT_EMAIL"
 
-if ! timeout $timeout_seconds gcloud iam service-accounts describe $SERVICE_ACCOUNT_EMAIL --project=$PROJECT_ID &>/dev/null; then
-  exit_code=$?
-  if [ $exit_code -eq 124 ]; then
-    echo -e "${RED}Command timed out after $timeout_seconds seconds.${NC}"
-    echo -e "${RED}This could indicate network issues or permission problems.${NC}"
-    exit 1
-  fi
-  
+# Function to check if service account exists
+check_service_account_exists() {
+  gcloud iam service-accounts describe $SERVICE_ACCOUNT_EMAIL --project=$PROJECT_ID &>/dev/null
+  return $?
+}
+
+set +e
+if ! check_service_account_exists; then
   echo -e "${YELLOW}Creating service account $SERVICE_ACCOUNT_NAME...${NC}"
   echo -e "Running: gcloud iam service-accounts create $SERVICE_ACCOUNT_NAME"
+  
   gcloud iam service-accounts create $SERVICE_ACCOUNT_NAME \
     --display-name="F3 Cloud SQL Service Account" \
     --project=$PROJECT_ID
-  echo -e "Service account created successfully"
+  
+  if [ $? -eq 0 ]; then
+    echo -e "Service account created successfully"
+  else
+    # Check if service account was created despite error
+    if check_service_account_exists; then
+      echo -e "Service account already exists"
+    else
+      echo -e "${RED}Failed to create service account. Exiting.${NC}"
+      exit 1
+    fi
+  fi
 else
   echo -e "Service account already exists"
 fi
+set -e
 
 # Grant the service account the necessary permissions
 echo -e "\n=== Granting Cloud SQL Client role to service account ==="
