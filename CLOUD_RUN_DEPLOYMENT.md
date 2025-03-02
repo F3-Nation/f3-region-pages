@@ -16,9 +16,7 @@ This guide explains how to deploy the F3 Region Pages application to Google Clou
 Create a `.env.yaml` file for local testing with Cloud Run:
 
 ```yaml
-GOOGLE_SHEETS_API_KEY: 'your-api-key'
-GOOGLE_SHEETS_ID: 'your-sheets-id'
-GOOGLE_SHEETS_TAB_NAME: 'your-tab-name'
+GOOGLE_SHEETS_JSON_URL: 'your-google-sheets-json-url'
 POSTGRES_URL: 'your-postgres-connection-string'
 ```
 
@@ -37,9 +35,7 @@ In the Google Cloud Console:
 1. Go to Cloud Build > Triggers
 2. Create a new trigger or edit an existing one
 3. Add the following substitution variables:
-   - `_GOOGLE_SHEETS_API_KEY`: Your Google Sheets API key
-   - `_GOOGLE_SHEETS_ID`: Your Google Sheets ID
-   - `_GOOGLE_SHEETS_TAB_NAME`: Your Google Sheets tab name
+   - `_GOOGLE_SHEETS_JSON_URL`: Your Google Sheets JSON URL
    - `_POSTGRES_URL`: Your PostgreSQL connection string
    - `_REGION`: Your preferred region (e.g., `us-central1`)
 
@@ -50,9 +46,8 @@ If you want to deploy manually instead of using Cloud Build:
 ```bash
 # Build the container
 docker build \
-  --build-arg GOOGLE_SHEETS_API_KEY=your-api-key \
-  --build-arg GOOGLE_SHEETS_ID=your-sheets-id \
-  --build-arg GOOGLE_SHEETS_TAB_NAME=your-tab-name \
+  --build-arg GOOGLE_SHEETS_JSON_URL=your-google-sheets-json-url \
+  --build-arg POSTGRES_URL=your-postgres-connection-string \
   -t gcr.io/your-project-id/f3-region-pages .
 
 # Push to Container Registry
@@ -64,7 +59,7 @@ gcloud run deploy f3-region-pages \
   --platform managed \
   --region your-region \
   --allow-unauthenticated \
-  --set-env-vars="GOOGLE_SHEETS_API_KEY=your-api-key,GOOGLE_SHEETS_ID=your-sheets-id,GOOGLE_SHEETS_TAB_NAME=your-tab-name,POSTGRES_URL=your-postgres-url"
+  --set-env-vars="GOOGLE_SHEETS_JSON_URL=your-google-sheets-json-url,POSTGRES_URL=your-postgres-connection-string"
 ```
 
 ### 5. Continuous Deployment with Cloud Build

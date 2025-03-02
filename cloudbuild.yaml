@@ -4,11 +4,9 @@ steps:
       [
         'build',
         '--build-arg',
-        'GOOGLE_SHEETS_API_KEY=${_GOOGLE_SHEETS_API_KEY}',
+        'GOOGLE_SHEETS_JSON_URL=${_GOOGLE_SHEETS_JSON_URL}',
         '--build-arg',
-        'GOOGLE_SHEETS_ID=${_GOOGLE_SHEETS_ID}',
-        '--build-arg',
-        'GOOGLE_SHEETS_TAB_NAME=${_GOOGLE_SHEETS_TAB_NAME}',
+        'POSTGRES_URL=${_POSTGRES_URL}',
         '-t',
         'gcr.io/$PROJECT_ID/f3-region-pages',
         '.',
@@ -28,7 +26,6 @@ steps:
       - '--platform=managed'
       - '--region=${_REGION}'
       - '--allow-unauthenticated'
-      - '--set-env-vars=GOOGLE_SHEETS_API_KEY=${_GOOGLE_SHEETS_API_KEY},GOOGLE_SHEETS_ID=${_GOOGLE_SHEETS_ID},GOOGLE_SHEETS_TAB_NAME=${_GOOGLE_SHEETS_TAB_NAME}'
-      - '--set-env-vars=POSTGRES_URL=${_POSTGRES_URL}'
+      - '--set-env-vars=GOOGLE_SHEETS_JSON_URL=${_GOOGLE_SHEETS_JSON_URL},POSTGRES_URL=${_POSTGRES_URL}'
 images:
   - 'gcr.io/$PROJECT_ID/f3-region-pages'
