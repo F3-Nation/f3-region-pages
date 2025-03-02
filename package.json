@@ -22,9 +22,9 @@
     "db:seed": "bun scripts/seed.ts",
     "docker:kill": "scripts/docker-kill.sh",
     "supabase:start": "supabase start",
-    "deploy": "npm run deploy:cloud-sql && npm run deploy:cloud-run",
-    "deploy:cloud-run": "scripts/deploy-cloud-run.sh",
-    "deploy:cloud-sql": "scripts/deploy-cloud-sql.sh"
+    "deploy:app": "scripts/deploy-app.sh",
+    "deploy:db": "scripts/deploy-db.sh",
+    "deploy": "npm run deploy:db && npm run deploy:app"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
