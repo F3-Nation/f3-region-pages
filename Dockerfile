@@ -33,5 +33,11 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
 
-EXPOSE 3000
+# Cloud Run will set PORT environment variable
+ENV PORT=3000
+EXPOSE $PORT
+
+# Use the non-root user for better security
+USER node
+
 CMD ["npm", "start"]
