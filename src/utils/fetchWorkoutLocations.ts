@@ -114,20 +114,22 @@ export const fetchRegions = async (): Promise<Region[]> => {
   return getCachedRegions();
 };
 
-export const fetchWorkoutLocationsByRegion = async (regionSlug: string): Promise<WorkoutLocation[] | null> => {
-    try {
-        const regionData = await getCachedRegionWorkouts(regionSlug);
-        if (!regionData) {
-            console.error(`No data found for region: ${regionSlug}`);
-            return null;
-        }
+export const fetchRegionsByLetter = async (): Promise<
+  Record<string, Omit<Region, 'id'>[]>
+> => {
+  const regions = await getCachedRegions();
+  return ALL_LETTERS.reduce((acc, letter) => {
+    const filteredRegions =
+      regions
+        .filter((region) =>
+          region.name.toLowerCase().startsWith(letter.toLowerCase())
+        )
+        .sort((a, b) => a.name.localeCompare(b.name)) || [];
+    acc[letter] = filteredRegions;
+    return acc;
+  }, {} as Record<string, Omit<Region, 'id'>[]>);
+};
 
-        return regionData.workouts.map(workout => ({
-            ...workout.data,
-            Time: workout.time || ''
-        } as WorkoutLocation));
-    } catch (error) {
-        console.error(`Error fetching workouts for ${regionSlug}:`, error);
-        return null;
-    }
-} 
+export const fetchWorkoutLocationsByRegion = async (
+  regionSlug: string
+): Promise<RawPointData[]> => await getCachedRegionWorkouts(regionSlug);
