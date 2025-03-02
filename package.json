@@ -19,7 +19,8 @@
     "db:reset": "bun scripts/reset.ts",
     "db:seed": "bun scripts/seed.ts",
     "docker:kill": "scripts/docker-kill.sh",
-    "supabase:start": "supabase start"
+    "supabase:start": "supabase start",
+    "deploy": "scripts/deploy.sh"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
