@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run db:migrate && npm run db:seed && next build",
+    "next:build": "next build",
     "start": "next start",
+    "start:with-migrations": "npm run db:migrate && npm run db:seed && next start",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -19,7 +21,12 @@
     "db:reset": "bun scripts/reset.ts",
     "db:seed": "bun scripts/seed.ts",
     "docker:kill": "scripts/docker-kill.sh",
-    "supabase:start": "supabase start"
+    "supabase:start": "supabase start",
+    "deploy:app": "scripts/deploy-app.sh",
+    "deploy:db": "scripts/deploy-db.sh",
+    "deploy:all": "scripts/deploy-all.sh",
+    "deploy:all:interactive": "scripts/deploy-all.sh --interactive",
+    "deploy": "npm run deploy:all"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
