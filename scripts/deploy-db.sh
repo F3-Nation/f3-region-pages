@@ -226,14 +226,34 @@ set -e
 
 echo -e "Public IP: $PUBLIC_IP"
 
-# Generate connection strings
+# Function to URL encode a string
+urlencode() {
+    local string="$1"
+    local strlen=${#string}
+    local encoded=""
+    local pos c o
+
+    for (( pos=0 ; pos<strlen ; pos++ )); do
+        c=${string:$pos:1}
+        case "$c" in
+            [-_.~a-zA-Z0-9] ) o="${c}" ;;
+            * )               printf -v o '%%%02x' "'$c"
+        esac
+        encoded+="${o}"
+    done
+    echo "${encoded}"
+}
+
+# Generate connection strings with URL encoded password
 echo -e "\n=== Generating connection strings ==="
-PRIVATE_CONNECTION_STRING="postgresql://$DB_USER:$DB_PASSWORD@//$DB_NAME?host=/cloudsql/$INSTANCE_CONNECTION_NAME"
-PUBLIC_CONNECTION_STRING="postgresql://$DB_USER:$DB_PASSWORD@$PUBLIC_IP:5432/$DB_NAME"
+ENCODED_PASSWORD=$(urlencode "$DB_PASSWORD")
+PRIVATE_CONNECTION_STRING="postgresql://$DB_USER:$ENCODED_PASSWORD@//$DB_NAME?host=/cloudsql/$INSTANCE_CONNECTION_NAME"
+PUBLIC_CONNECTION_STRING="postgresql://$DB_USER:$ENCODED_PASSWORD@$PUBLIC_IP:5432/$DB_NAME"
+LOCAL_CONNECTION_STRING="postgresql://$DB_USER:$ENCODED_PASSWORD@localhost:5432/$DB_NAME"
 echo -e "Connection strings generated"
 
 # Update .env.local with the public connection string for local development
-echo -e "\n${YELLOW}=== Updating .env.local with public connection string ====${NC}"
+echo -e "\n${YELLOW}=== Updating .env.local with local connection string ====${NC}"
 ENV_LOCAL_FILE=".env.local"
 
 # Delete old backups of .env.local
@@ -255,22 +275,189 @@ fi
 # Update or add POSTGRES_URL in .env.local
 if [ -f "$ENV_LOCAL_FILE" ]; then
   if grep -q "^POSTGRES_URL=" "$ENV_LOCAL_FILE"; then
-    # Replace the existing POSTGRES_URL line
-    sed -i.tmp "s|^POSTGRES_URL=.*|POSTGRES_URL=$PUBLIC_CONNECTION_STRING|" "$ENV_LOCAL_FILE"
+    # Replace the existing POSTGRES_URL line with localhost connection
+    sed -i.tmp "s|^POSTGRES_URL=.*|POSTGRES_URL=postgresql://$DB_USER:$ENCODED_PASSWORD@localhost:5432/$DB_NAME|" "$ENV_LOCAL_FILE"
     rm -f "${ENV_LOCAL_FILE}.tmp"
-    echo -e "${GREEN}Updated POSTGRES_URL in $ENV_LOCAL_FILE${NC}"
+    echo -e "${GREEN}Updated POSTGRES_URL in $ENV_LOCAL_FILE to use localhost${NC}"
   else
-    # Add POSTGRES_URL to the file
-    echo "POSTGRES_URL=$PUBLIC_CONNECTION_STRING" >> "$ENV_LOCAL_FILE"
-    echo -e "${GREEN}Added POSTGRES_URL to $ENV_LOCAL_FILE${NC}"
+    # Add POSTGRES_URL to the file with localhost connection
+    echo "POSTGRES_URL=postgresql://$DB_USER:$ENCODED_PASSWORD@localhost:5432/$DB_NAME" >> "$ENV_LOCAL_FILE"
+    echo -e "${GREEN}Added POSTGRES_URL to $ENV_LOCAL_FILE with localhost connection${NC}"
   fi
 else
   # Create a new .env.local file with POSTGRES_URL
   echo "# Local development environment variables - Created by deploy-db.sh" > "$ENV_LOCAL_FILE"
   echo "# Last updated: $(date)" >> "$ENV_LOCAL_FILE"
-  echo "POSTGRES_URL=$PUBLIC_CONNECTION_STRING" >> "$ENV_LOCAL_FILE"
-  echo -e "${GREEN}Created new $ENV_LOCAL_FILE with POSTGRES_URL${NC}"
+  echo "POSTGRES_URL=postgresql://$DB_USER:$ENCODED_PASSWORD@localhost:5432/$DB_NAME" >> "$ENV_LOCAL_FILE"
+  echo -e "${GREEN}Created new $ENV_LOCAL_FILE with POSTGRES_URL using localhost connection${NC}"
 fi
+
+# Check if Cloud SQL Auth Proxy is installed
+echo -e "\n${YELLOW}=== Checking Cloud SQL Auth Proxy ===${NC}"
+
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to find cloud_sql_proxy in common locations
+find_cloud_sql_proxy() {
+    local paths=(
+        "$(which cloud_sql_proxy)"
+        "$(which cloud-sql-proxy)"
+        "/opt/homebrew/bin/cloud_sql_proxy"
+        "/opt/homebrew/bin/cloud-sql-proxy"
+        "/usr/local/bin/cloud_sql_proxy"
+        "/usr/local/bin/cloud-sql-proxy"
+        "$HOME/bin/cloud_sql_proxy"
+        "$HOME/bin/cloud-sql-proxy"
+    )
+    
+    for path in "${paths[@]}"; do
+        if [ -f "$path" ] && [ -x "$path" ]; then
+            echo "$path"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Try to find cloud_sql_proxy
+CLOUD_SQL_PROXY_PATH=$(find_cloud_sql_proxy)
+
+if [ -z "$CLOUD_SQL_PROXY_PATH" ]; then
+    echo -e "${YELLOW}Cloud SQL Auth Proxy is not installed.${NC}"
+    
+    # For macOS, use Homebrew
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        if ! command_exists brew; then
+            echo -e "${RED}Homebrew is not installed. Would you like to install it? (y/n)${NC}"
+            read -r response
+            if [[ "$response" =~ ^[Yy]$ ]]; then
+                echo -e "Installing Homebrew..."
+                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            else
+                echo -e "${RED}Please install Homebrew first from: https://brew.sh${NC}"
+                exit 1
+            fi
+        fi
+        
+        echo -e "${YELLOW}Would you like to install Cloud SQL Auth Proxy via Homebrew? (y/n)${NC}"
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            echo -e "Installing Cloud SQL Auth Proxy..."
+            if ! brew install cloud-sql-proxy; then
+                echo -e "${RED}Failed to install Cloud SQL Auth Proxy via Homebrew.${NC}"
+                echo -e "Please install it manually from:"
+                echo -e "https://cloud.google.com/sql/docs/postgres/connect-instance-auth-proxy"
+                exit 1
+            fi
+            
+            # Check again after installation
+            CLOUD_SQL_PROXY_PATH=$(find_cloud_sql_proxy)
+            if [ -z "$CLOUD_SQL_PROXY_PATH" ]; then
+                echo -e "${RED}Failed to find Cloud SQL Auth Proxy after installation.${NC}"
+                echo -e "Please ensure it's in your PATH or install it manually."
+                exit 1
+            fi
+        else
+            echo -e "${RED}Please install Cloud SQL Auth Proxy manually from:${NC}"
+            echo -e "https://cloud.google.com/sql/docs/postgres/connect-instance-auth-proxy"
+            exit 1
+        fi
+    else
+        echo -e "${RED}Please install Cloud SQL Auth Proxy manually for your OS${NC}"
+        echo -e "Visit: https://cloud.google.com/sql/docs/postgres/connect-instance-auth-proxy"
+        exit 1
+    fi
+fi
+
+echo -e "${GREEN}Found Cloud SQL Auth Proxy at: $CLOUD_SQL_PROXY_PATH${NC}"
+
+# Function to check if port is in use
+port_in_use() {
+    lsof -i :$1 >/dev/null 2>&1
+}
+
+# Function to kill process using port
+kill_port_process() {
+    lsof -ti :$1 | xargs kill -9 2>/dev/null || true
+}
+
+# Start Cloud SQL Auth Proxy in the background
+echo -e "\n${YELLOW}=== Starting Cloud SQL Auth Proxy ===${NC}"
+
+# Kill any existing proxy processes and clear port 5432
+echo -e "Cleaning up existing processes..."
+pkill -f "cloud_sql_proxy.*$INSTANCE_CONNECTION_NAME" || true
+kill_port_process 5432 || true
+
+# Start the proxy with better error handling and logging
+echo -e "Starting Cloud SQL Auth Proxy with instance: $INSTANCE_CONNECTION_NAME"
+$CLOUD_SQL_PROXY_PATH --port 5432 --address 0.0.0.0 --debug-logs "$INSTANCE_CONNECTION_NAME" > /tmp/cloud_sql_proxy.log 2>&1 &
+PROXY_PID=$!
+
+# Wait for the proxy to start and verify it's running
+echo -e "Waiting for proxy to start..."
+for i in {1..30}; do
+    if kill -0 $PROXY_PID 2>/dev/null; then
+        if nc -z localhost 5432; then
+            echo -e "${GREEN}Cloud SQL Auth Proxy started successfully${NC}"
+            break
+        fi
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${RED}Failed to start Cloud SQL Auth Proxy after 30 seconds.${NC}"
+        echo -e "Checking proxy logs..."
+        if [ -f "/tmp/cloud_sql_proxy.log" ]; then
+            cat "/tmp/cloud_sql_proxy.log"
+        fi
+        kill $PROXY_PID 2>/dev/null || true
+        exit 1
+    fi
+    sleep 1
+done
+
+# Verify the proxy is actually working by trying to connect
+echo -e "Verifying proxy connection..."
+if ! nc -z localhost 5432; then
+    echo -e "${RED}Failed to connect to Cloud SQL Auth Proxy.${NC}"
+    echo -e "Checking proxy logs..."
+    if [ -f "/tmp/cloud_sql_proxy.log" ]; then
+        cat "/tmp/cloud_sql_proxy.log"
+    fi
+    kill $PROXY_PID 2>/dev/null || true
+    exit 1
+fi
+
+# Run database migrations and seed script with error handling
+echo -e "\n${YELLOW}=== Running database migrations and seed script ===${NC}"
+echo -e "Running database migrations..."
+set +e
+npx npm run db:migrate
+MIGRATE_EXIT_CODE=$?
+if [ $MIGRATE_EXIT_CODE -ne 0 ]; then
+    echo -e "${RED}Database migration failed. Exiting.${NC}"
+    kill $PROXY_PID 2>/dev/null || true
+    exit 1
+fi
+
+echo -e "Running database seed script..."
+npx npm run db:seed
+SEED_EXIT_CODE=$?
+if [ $SEED_EXIT_CODE -ne 0 ]; then
+    echo -e "${RED}Database seeding failed. Exiting.${NC}"
+    kill $PROXY_PID 2>/dev/null || true
+    exit 1
+fi
+set -e
+
+echo -e "${GREEN}Database migrations and seeding completed successfully${NC}"
+
+# Kill the Cloud SQL Auth Proxy
+echo -e "\n${YELLOW}=== Stopping Cloud SQL Auth Proxy ===${NC}"
+kill $PROXY_PID 2>/dev/null || true
+echo -e "${GREEN}Cloud SQL Auth Proxy stopped${NC}"
 
 CLOUD_SQL_LOG_FILENAME="cloud-sql.log"
 

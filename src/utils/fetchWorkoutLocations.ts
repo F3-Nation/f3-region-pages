@@ -52,7 +52,8 @@ const normalizeTimeRange = (timeRange: string): string => {
 const getCachedRegions = unstable_cache(
   async (): Promise<Region[]> => {
     try {
-      return await db
+      console.log('Fetching regions from database...');
+      const result = await db
         .select({
           id: regions.id,
           name: regions.name,
@@ -60,8 +61,13 @@ const getCachedRegions = unstable_cache(
         })
         .from(regions)
         .orderBy(regions.name);
+      console.log(`Found ${result.length} regions in database`);
+      return result;
     } catch (error) {
       console.error('Error fetching regions:', error);
+      if (error instanceof Error) {
+        console.error('Error stack:', error.stack);
+      }
       return [];
     }
   },
