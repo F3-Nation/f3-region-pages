@@ -232,6 +232,73 @@ PRIVATE_CONNECTION_STRING="postgresql://$DB_USER:$DB_PASSWORD@//$DB_NAME?host=/c
 PUBLIC_CONNECTION_STRING="postgresql://$DB_USER:$DB_PASSWORD@$PUBLIC_IP:5432/$DB_NAME"
 echo -e "Connection strings generated"
 
+# Update .env.local with the public connection string for local development
+echo -e "\n${YELLOW}=== Updating .env.local with public connection string ====${NC}"
+ENV_LOCAL_FILE=".env.local"
+
+# Delete old backups of .env.local
+echo -e "\n${YELLOW}=== Cleaning up old backups ===${NC}"
+ENV_LOCAL_BAK_GLOB="${ENV_LOCAL_FILE}.bak.*"
+if ls $ENV_LOCAL_BAK_GLOB 1> /dev/null 2>&1; then
+  echo -e "Removing old backups..."
+  rm $ENV_LOCAL_BAK_GLOB
+  echo -e "${GREEN}Old backups removed successfully${NC}"
+fi
+
+# Create a backup of .env.local if it exists
+if [ -f "$ENV_LOCAL_FILE" ]; then
+  BACKUP_FILE="${ENV_LOCAL_FILE}.bak.$(date +%Y%m%d%H%M%S)"
+  echo -e "Creating backup of existing $ENV_LOCAL_FILE to $BACKUP_FILE"
+  cp "$ENV_LOCAL_FILE" "$BACKUP_FILE"
+fi
+
+# Update or add POSTGRES_URL in .env.local
+if [ -f "$ENV_LOCAL_FILE" ]; then
+  if grep -q "^POSTGRES_URL=" "$ENV_LOCAL_FILE"; then
+    # Replace the existing POSTGRES_URL line
+    sed -i.tmp "s|^POSTGRES_URL=.*|POSTGRES_URL=$PUBLIC_CONNECTION_STRING|" "$ENV_LOCAL_FILE"
+    rm -f "${ENV_LOCAL_FILE}.tmp"
+    echo -e "${GREEN}Updated POSTGRES_URL in $ENV_LOCAL_FILE${NC}"
+  else
+    # Add POSTGRES_URL to the file
+    echo "POSTGRES_URL=$PUBLIC_CONNECTION_STRING" >> "$ENV_LOCAL_FILE"
+    echo -e "${GREEN}Added POSTGRES_URL to $ENV_LOCAL_FILE${NC}"
+  fi
+else
+  # Create a new .env.local file with POSTGRES_URL
+  echo "# Local development environment variables - Created by deploy-db.sh" > "$ENV_LOCAL_FILE"
+  echo "# Last updated: $(date)" >> "$ENV_LOCAL_FILE"
+  echo "POSTGRES_URL=$PUBLIC_CONNECTION_STRING" >> "$ENV_LOCAL_FILE"
+  echo -e "${GREEN}Created new $ENV_LOCAL_FILE with POSTGRES_URL${NC}"
+fi
+
+CLOUD_SQL_LOG_FILENAME="cloud-sql.log"
+
+# Save connection information to a file for reference
+echo -e "\n${YELLOW}Saving connection information to $CLOUD_SQL_LOG_FILENAME${NC}"
+{
+  echo "=== Cloud SQL Instance Information ==="
+  echo "Instance Name: $INSTANCE_NAME"
+  echo "Instance Connection Name: $INSTANCE_CONNECTION_NAME"
+  echo "Database Name: $DB_NAME"
+  echo "Database User: $DB_USER"
+  echo "Database Password: $DB_PASSWORD"
+  echo "Public IP: $PUBLIC_IP"
+  echo ""
+  echo "=== Connection Strings ==="
+  echo "For Cloud Run (private): $PRIVATE_CONNECTION_STRING"
+  echo "For external access (public): $PUBLIC_CONNECTION_STRING"
+  echo "Service Account: $SERVICE_ACCOUNT_EMAIL"
+  echo ""
+  echo "=== Cloud Build Substitution Variables ==="
+  echo "_POSTGRES_URL: $PRIVATE_CONNECTION_STRING"
+  echo "_CLOUDSQL_SERVICE_ACCOUNT: $SERVICE_ACCOUNT_EMAIL"
+  echo "_CLOUDSQL_CONNECTION_NAME: $INSTANCE_CONNECTION_NAME"
+  echo "_REGION: $REGION (if not already set)"
+} > $CLOUD_SQL_LOG_FILENAME
+
+echo -e "${YELLOW}Note: Keep $CLOUD_SQL_LOG_FILENAME secure as it contains sensitive information.${NC}"
+
 # Configure the instance for Cloud Run
 echo -e "\n=== Configuring Cloud SQL instance for Cloud Run ==="
 
@@ -321,6 +388,15 @@ fi
 echo -e "\n${YELLOW}=== Creating/updating .env.prod file with database connection ====${NC}"
 ENV_PROD_FILE=".env.prod"
 
+# Delete old backups of .env.prod
+echo -e "\n${YELLOW}=== Cleaning up old backups ===${NC}"
+ENV_PROD_BAK_GLOB="${ENV_PROD_FILE}.bak.*"
+if ls $ENV_PROD_BAK_GLOB 1> /dev/null 2>&1; then
+  echo -e "Removing old backups..."
+  rm $ENV_PROD_BAK_GLOB
+  echo -e "${GREEN}Old backups removed successfully${NC}"
+fi
+
 # Check if .env.prod exists and create a backup if it does
 if [ -f "$ENV_PROD_FILE" ]; then
   BACKUP_FILE="${ENV_PROD_FILE}.bak.$(date +%Y%m%d%H%M%S)"
@@ -407,30 +483,5 @@ echo -e "   Then use: ${GREEN}postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/
 echo -e "\n4. To deploy your app using the updated .env.prod file:"
 echo -e "   ${GREEN}./scripts/deploy-app.sh --env-file .env.prod${NC}"
 echo -e "   Or simply: ${GREEN}./scripts/deploy-all.sh${NC}"
-
-# Save connection information to a file for reference
-echo -e "\n${YELLOW}Saving connection information to cloud-sql-info.txt${NC}"
-{
-  echo "=== Cloud SQL Instance Information ==="
-  echo "Instance Name: $INSTANCE_NAME"
-  echo "Instance Connection Name: $INSTANCE_CONNECTION_NAME"
-  echo "Database Name: $DB_NAME"
-  echo "Database User: $DB_USER"
-  echo "Database Password: $DB_PASSWORD"
-  echo "Public IP: $PUBLIC_IP"
-  echo ""
-  echo "=== Connection Strings ==="
-  echo "For Cloud Run (private): $PRIVATE_CONNECTION_STRING"
-  echo "For external access (public): $PUBLIC_CONNECTION_STRING"
-  echo "Service Account: $SERVICE_ACCOUNT_EMAIL"
-  echo ""
-  echo "=== Cloud Build Substitution Variables ==="
-  echo "_POSTGRES_URL: $PRIVATE_CONNECTION_STRING"
-  echo "_CLOUDSQL_SERVICE_ACCOUNT: $SERVICE_ACCOUNT_EMAIL"
-  echo "_CLOUDSQL_CONNECTION_NAME: $INSTANCE_CONNECTION_NAME"
-  echo "_REGION: $REGION (if not already set)"
-} > cloud-sql-info.txt
-
-echo -e "${YELLOW}Note: Keep cloud-sql-info.txt secure as it contains sensitive information.${NC}"
 
 echo -e "\n=== Cloud SQL deployment script completed at $(date) ===\n"
