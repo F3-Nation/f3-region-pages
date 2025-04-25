@@ -67,9 +67,9 @@ export default function SearchableRegionList({
         case 'Enter':
           e.preventDefault();
           if (selectedIndex >= 0 && selectedIndex < filteredRegions.length) {
-            const selectedSlug = filteredRegions[selectedIndex];
+            const { slug } = filteredRegions[selectedIndex];
             setIsLoading(true);
-            router.push(`/regions/${selectedSlug}`);
+            router.push(`/regions/${slug}`);
           }
           break;
         case 'Escape':
