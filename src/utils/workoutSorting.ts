@@ -1,4 +1,5 @@
 import { RawPointData } from '@/types/Points';
+import { WorkoutLocation } from '@/types/workoutLocation';
 
 // Time constants
 const MINUTES_IN_HOUR = 60;
@@ -136,23 +137,55 @@ const calculateMinutesUntilWorkout = (
 };
 
 /**
+ * Convert WorkoutLocation to RawPointData
+ * Maps the property names from the WorkoutLocation format to RawPointData format
+ */
+export const workoutLocationToRawPointData = (
+  workout: WorkoutLocation
+): RawPointData => {
+  return {
+    group: workout.Group,
+    time: workout.Time,
+    type: workout.Type,
+    region: workout.Region,
+    website: workout.Website || '',
+    notes: workout.Notes,
+    markerIcon: workout['Marker Icon'] || '',
+    markerColor: workout['Marker Color'] || '',
+    iconColor: workout['Icon Color'] || '',
+    customSize: workout['Custom Size'] || '',
+    name: workout.Name,
+    image: workout.Image || '',
+    description: workout.Description,
+    location: workout.Location,
+    latitude: parseFloat(workout.Latitude) || 0,
+    longitude: parseFloat(workout.Longitude) || 0,
+    entryId: workout['Entry ID'],
+  };
+};
+
+/**
  * Sort workouts by next occurrence, taking into account current time
  * Workouts that have already occurred today are moved to next week
  * If times are identical, sorts by workout name
  */
-export const sortWorkoutsByDayAndTime = (
-  workouts: RawPointData[]
-): RawPointData[] => {
+export const sortWorkoutsByDayAndTime = <T extends WorkoutLocation | RawPointData>(
+  workouts: T[]
+): T[] => {
   const { currentDayIndex, currentTimeInMinutes } = getCurrentTime();
 
   return [...workouts].sort((a, b) => {
+    // Convert to RawPointData if needed
+    const rawA = 'group' in a ? a as RawPointData : workoutLocationToRawPointData(a as WorkoutLocation);
+    const rawB = 'group' in b ? b as RawPointData : workoutLocationToRawPointData(b as WorkoutLocation);
+
     // Get day indices
-    const dayIndexA = DAYS_ORDER.indexOf(a.group as DayOfWeek);
-    const dayIndexB = DAYS_ORDER.indexOf(b.group as DayOfWeek);
+    const dayIndexA = DAYS_ORDER.indexOf(rawA.group as DayOfWeek);
+    const dayIndexB = DAYS_ORDER.indexOf(rawB.group as DayOfWeek);
 
     // Parse times
-    const timeA = parseTime(a.time).totalMinutes;
-    const timeB = parseTime(b.time).totalMinutes;
+    const timeA = parseTime(rawA.time).totalMinutes;
+    const timeB = parseTime(rawB.time).totalMinutes;
 
     // Calculate minutes until each workout
     const minutesUntilA = calculateMinutesUntilWorkout(
@@ -175,6 +208,6 @@ export const sortWorkoutsByDayAndTime = (
     }
 
     // Secondary sort by name if times are identical
-    return (a.name || '').localeCompare(b.name || '');
+    return (rawA.name || '').localeCompare(rawB.name || '');
   });
 };
