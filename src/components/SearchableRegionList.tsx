@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, KeyboardEvent, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, KeyboardEvent, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ALL_LETTERS } from '@/lib/const';
@@ -48,6 +48,10 @@ export default function SearchableRegionList({
     },
     [router]
   );
+
+  useEffect(() => {
+    if(filteredRegions.length === 1) setSelectedIndex(0); 
+  }, [filteredRegions]);  
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
