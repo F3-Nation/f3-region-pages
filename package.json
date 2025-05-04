@@ -6,9 +6,13 @@
     "node": "20.18.2"
   },
   "scripts": {
-    "dev": "next dev",
+    "cloud-sql-proxy": "cloud-sql-proxy --port 5432 --address 0.0.0.0 region-pages:us-central1:f3-region-pages-db",
+    "wait-for-db": "for i in {1..30}; do if nc -z localhost 5432; then exit 0; fi; sleep 1; done; exit 1",
+    "dev": "npm run cloud-sql-proxy & npm run wait-for-db && next dev",
     "build": "npm run db:migrate && npm run db:seed && next build",
+    "next:build": "next build",
     "start": "next start",
+    "start:with-migrations": "npm run db:migrate && npm run db:seed && next start",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -20,7 +24,11 @@
     "db:seed": "bun scripts/seed.ts",
     "db:setup:local": "scripts/db-setup-local.sh",
     "docker:kill": "scripts/docker-kill.sh",
-    "supabase:start": "supabase start"
+    "deploy:app": "scripts/deploy-app.sh",
+    "deploy:db": "scripts/deploy-db.sh",
+    "deploy:all": "scripts/deploy-all.sh",
+    "deploy:all:interactive": "scripts/deploy-all.sh --interactive",
+    "deploy": "npm run deploy:all"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
