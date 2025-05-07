@@ -12,12 +12,6 @@ import { calculateMapParameters } from '@/utils/mapUtils';
 import { extractCityAndState } from '@/utils/locationUtils';
 import { RegionContent } from '@/components/RegionContent';
 
-interface RegionProps {
-  params: Promise<{
-    regionSlug: string;
-  }>;
-}
-
 export const generateStaticParams = async () =>
   (await fetchRegions()).map((region) => ({
     id: region.id,
@@ -57,7 +51,9 @@ export async function generateMetadata({
 
 export default async function RegionPage({
   params,
-}: Pick<RegionProps, 'params'>) {
+}: {
+  params: Promise<{ regionSlug: string }>;
+}) {
   const { regionSlug } = await params;
   const regionData = await fetchWorkoutLocationsByRegion(regionSlug);
 
