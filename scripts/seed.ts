@@ -57,7 +57,7 @@ const getRegionsFromPoints = (points: RawPointData[]) =>
     ),
   ].map((name) => ({
     name,
-    slug: toKebabCase(name),
+    slug: toKebabCase(name).replace(/-{3,}/g, '-'),
   }));
 
 seedDatabase();
