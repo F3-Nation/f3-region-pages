@@ -1,7 +1,5 @@
-import { sql } from 'drizzle-orm';
 import {
   pgTable,
-  uuid,
   varchar,
   integer,
   doublePrecision,
@@ -14,6 +12,7 @@ export const regions = pgTable('regions', {
   website: varchar(),
   city: varchar(),
   state: varchar(),
+  zip: varchar(),
   country: varchar(),
   latitude: doublePrecision(),
   longitude: doublePrecision(),
@@ -32,5 +31,9 @@ export const workouts = pgTable('workouts', {
   notes: varchar(),
   latitude: doublePrecision(),
   longitude: doublePrecision(),
+  city: varchar(),
+  state: varchar(),
+  zip: varchar(),
+  country: varchar(),
   location: varchar(),
 });

@@ -19,6 +19,7 @@ async function seedDatabase() {
 
   await seedRegions();
   await seedWorkouts();
+  await enrichRegions();
 }
 
 async function seedRegions() {
@@ -54,6 +55,7 @@ async function* fetchRegions(): AsyncGenerator<Region> {
       website: region.website,
       city: 'city',
       state: 'state',
+      zip: 'zip',
       country: 'country',
       latitude: 0.5,
       longitude: -5.2,
@@ -198,9 +200,52 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
       notes: workout.notes,
       latitude: location.latitude,
       longitude: location.longitude,
+      city: location.city,
+      state: location.state,
+      zip: location.zip,
+      country: location.country,
       location: _location,
     } as Workout;
   }
+}
+
+async function enrichRegions() {
+  console.debug('🔄 enriching regions...');
+  const regions = await db
+    .select()
+    .from(regionsSchema)
+    .orderBy(asc(regionsSchema.name));
+  for (let i = 0; i < regions.length; i++) {
+    const region = regions[i];
+    console.debug(`enriching region ${i} of ${regions.length}: ${region.name}`);
+    const workouts = await db
+      .select({
+        city: workoutsSchema.city,
+        state: workoutsSchema.state,
+        zip: workoutsSchema.zip,
+        country: workoutsSchema.country,
+      })
+      .from(workoutsSchema)
+      .where(eq(workoutsSchema.regionId, region.id));
+    const regionPostalCodeCounts = workouts.reduce((acc, workout) => {
+      const zip = workout.zip;
+      if (zip) {
+        acc[zip] = (acc[zip] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    const entries = Object.entries(regionPostalCodeCounts);
+    if (entries.length > 0) {
+      const zip = entries.sort((a, b) => b[1] - a[1])[0][0];
+      const { city, state, country } = workouts.filter((w) => w.zip === zip)[0];
+      await db
+        .update(regionsSchema)
+        .set({ city, state, zip, country })
+        .where(eq(regionsSchema.id, region.id));
+    }
+  }
+  console.debug('✅ done enriching regions');
 }
 
 seedDatabase();
