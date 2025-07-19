@@ -11,14 +11,14 @@ runConfig:
 env:
   # Configure environment variables.
   # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
-  - variable: GOOGLE_SHEETS_JSON_URL
-    secret: google-sheets-json-url
+  - variable: POSTGRES_URL
+    secret: postgres-url
     availability:
       - BUILD
       - RUNTIME
 
-  - variable: POSTGRES_URL
-    secret: postgres-url
+  - variable: F3_DATA_WAREHOUSE_URL
+    secret: f3-data-warehouse-url
     availability:
       - BUILD
       - RUNTIME
