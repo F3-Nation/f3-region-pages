@@ -19,6 +19,7 @@ export interface Region {
   website?: string | null;
   city?: string | null;
   state?: string | null;
+  zip?: string | null;
   country?: string | null;
   latitude?: number | null;
   longitude?: number | null;

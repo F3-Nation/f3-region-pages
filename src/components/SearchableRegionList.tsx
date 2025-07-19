@@ -35,9 +35,20 @@ export default function SearchableRegionList({
   const filteredRegions = useMemo(() => {
     if (!searchQuery) return [];
     const query = searchQuery.toLowerCase();
-    return regions.filter((region) =>
-      region.name.toLowerCase().includes(query)
-    );
+    return regions.filter((region) => {
+      // Search in name, city, state, zip, and country
+      const searchableFields = [
+        region.name,
+        region.city,
+        region.state,
+        region.zip,
+        region.country,
+      ].filter(Boolean); // Remove undefined/null values
+
+      return searchableFields.some((field) =>
+        field?.toLowerCase().includes(query)
+      );
+    });
   }, [searchQuery, regions]);
 
   // Determine which regions to display
@@ -180,7 +191,22 @@ export default function SearchableRegionList({
                     index === selectedIndex ? 'bg-gray-50 dark:bg-gray-700' : ''
                   }`}
               >
-                {region.name}
+                <div>
+                  <div className="font-medium">{region.name}</div>
+                  {(region.city ||
+                    region.state ||
+                    region.zip ||
+                    region.country) && (
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {[region.city, region.state, region.zip]
+                        .filter(Boolean)
+                        .join(', ')}
+                      {region.country && (
+                        <div className="mt-1">{region.country}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </button>
             ))}
           </div>
@@ -306,8 +332,25 @@ export default function SearchableRegionList({
                 text-gray-900 dark:text-gray-100
                 transition-colors"
             >
-              <span className="text-lg capitalize">{region.name}</span>
-              <span className="ml-2 text-gray-500 dark:text-gray-400">→</span>
+              <div className="flex justify-between items-start">
+                <div>
+                  <span className="text-lg capitalize">{region.name}</span>
+                  {(region.city ||
+                    region.state ||
+                    region.zip ||
+                    region.country) && (
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      {[region.city, region.state, region.zip]
+                        .filter(Boolean)
+                        .join(', ')}
+                      {region.country && (
+                        <div className="mt-1">{region.country}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <span className="text-gray-500 dark:text-gray-400">→</span>
+              </div>
             </Link>
           </li>
         ))}

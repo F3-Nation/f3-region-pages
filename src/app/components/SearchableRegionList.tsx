@@ -134,7 +134,9 @@ export default function SearchableRegionList({
                   hover:bg-gray-50 dark:hover:bg-gray-700 
                   focus:bg-gray-50 dark:focus:bg-gray-700 
                   focus:outline-none capitalize
-                  ${index === selectedIndex ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+                  ${
+                    index === selectedIndex ? 'bg-gray-50 dark:bg-gray-700' : ''
+                  }`}
               >
                 {slug.replace(/-/g, ' ')}
               </button>
