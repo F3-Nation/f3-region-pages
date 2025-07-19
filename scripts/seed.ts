@@ -1,4 +1,4 @@
-import { eq, asc, and } from 'drizzle-orm';
+import { eq, asc, and, notInArray } from 'drizzle-orm';
 
 import { toKebabCase } from '../src/utils/toKebabCase';
 import { db } from '../drizzle/db';
@@ -14,9 +14,6 @@ import {
 } from '../drizzle/f3-data-warehouse/schema';
 
 async function seedDatabase() {
-  await db.delete(workoutsSchema);
-  await db.delete(regionsSchema);
-
   await seedRegions();
   await seedWorkouts();
   await enrichRegions();
@@ -28,7 +25,7 @@ async function seedRegions() {
   let i = 1;
   for await (const region of regions) {
     console.debug(`inserting region ${i}: ${region.name}`);
-    await db.insert(regionsSchema).values(region);
+    await db.insert(regionsSchema).values(region).onConflictDoNothing();
     i++;
   }
   console.debug('✅ done inserting regions');
@@ -37,6 +34,10 @@ async function seedRegions() {
 type Region = typeof regionsSchema.$inferInsert;
 
 async function* fetchRegions(): AsyncGenerator<Region> {
+  const previouslyIngestedRegions = await db
+    .select({ id: regionsSchema.id })
+    .from(regionsSchema)
+    .orderBy(asc(regionsSchema.id));
   const regions = await f3DataWarehouseDb
     .select({
       id: orgsSchema.id,
@@ -44,7 +45,16 @@ async function* fetchRegions(): AsyncGenerator<Region> {
       website: orgsSchema.website,
     })
     .from(orgsSchema)
-    .where(and(eq(orgsSchema.orgType, 'region'), eq(orgsSchema.isActive, true)))
+    .where(
+      and(
+        eq(orgsSchema.orgType, 'region'),
+        eq(orgsSchema.isActive, true),
+        notInArray(
+          orgsSchema.id,
+          previouslyIngestedRegions.map((r) => parseInt(r.id))
+        )
+      )
+    )
     .orderBy(asc(orgsSchema.name));
 
   for await (const region of regions) {
@@ -70,7 +80,7 @@ async function seedWorkouts() {
   let i = 1;
   for await (const workout of workouts) {
     console.debug(`inserting workouts ${i}: ${workout.name}`);
-    await db.insert(workoutsSchema).values(workout);
+    await db.insert(workoutsSchema).values(workout).onConflictDoNothing();
     i++;
   }
   console.debug('✅ done inserting workouts');
@@ -79,6 +89,10 @@ async function seedWorkouts() {
 type Workout = typeof workoutsSchema.$inferInsert;
 
 async function* fetchWorkouts(): AsyncGenerator<Workout> {
+  const previouslyIngestedWorkouts = await db
+    .select({ id: workoutsSchema.id })
+    .from(workoutsSchema)
+    .orderBy(asc(workoutsSchema.id));
   const workouts = await f3DataWarehouseDb
     .select({
       id: eventsSchema.id,
@@ -91,7 +105,14 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
       group: eventsSchema.dayOfWeek,
     })
     .from(eventsSchema)
-    .where(eq(eventsSchema.isActive, true))
+    .where(
+      and(
+        eq(eventsSchema.isActive, true),
+        notInArray(eventsSchema.id, [
+          ...previouslyIngestedWorkouts.map((w) => parseInt(w.id)),
+        ])
+      )
+    )
     .orderBy(asc(eventsSchema.name));
 
   const types = ['bootcamp', 'ruck', 'run', 'sandbag'];
