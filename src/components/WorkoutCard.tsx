@@ -1,7 +1,7 @@
-import { RawPointData } from '@/types/Points';
+import { WorkoutWithRegion } from '@/types/Workout';
 
 interface WorkoutCardProps {
-  workout: RawPointData;
+  workout: WorkoutWithRegion;
 }
 
 function sanitizeHtml(html: string): string {
@@ -23,9 +23,15 @@ function sanitizeHtml(html: string): string {
   );
 }
 
-function getGoogleMapsUrl(location: RawPointData): string {
-  const { latitude, longitude } = location;
-  return `https://www.google.com/maps?q=${latitude},${longitude}`;
+function getGoogleMapsUrl(workout: WorkoutWithRegion): string {
+  const { latitude, longitude } = workout;
+  if (latitude && longitude) {
+    return `https://www.google.com/maps?q=${latitude},${longitude}`;
+  }
+  // Fallback to location search if coordinates not available
+  return `https://www.google.com/maps/search/${encodeURIComponent(
+    workout.location || ''
+  )}`;
 }
 
 export function WorkoutCard({ workout }: WorkoutCardProps) {
@@ -58,48 +64,50 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
           </svg>
           {workout.time}
         </div>
-        <a
-          href={mapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
-        >
-          <svg
-            className="w-4 h-4 group-hover:text-blue-600 dark:group-hover:text-blue-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {workout.location && (
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-          <span className="hover:underline underline-offset-2">
-            {workout.location}
-          </span>
-          <svg
-            className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-            />
-          </svg>
-        </a>
+            <svg
+              className="w-4 h-4 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <span className="hover:underline underline-offset-2">
+              {workout.location}
+            </span>
+            <svg
+              className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
+          </a>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 mb-3">

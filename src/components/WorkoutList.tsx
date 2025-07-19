@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { WorkoutCard } from '@/components/WorkoutCard';
-import { RawPointData } from '@/types/Points';
+import { WorkoutWithRegion } from '@/types/Workout';
 
 interface WorkoutListProps {
-  workouts: RawPointData[];
+  workouts: WorkoutWithRegion[];
 }
 
 export function WorkoutList({ workouts }: WorkoutListProps) {
@@ -40,8 +40,8 @@ export function WorkoutList({ workouts }: WorkoutListProps) {
   return (
     <div>
       <div className="grid gap-4 md:grid-cols-2">
-        {filteredWorkouts.map((workout: RawPointData) => (
-          <WorkoutCard key={workout.entryId} workout={workout} />
+        {filteredWorkouts.map((workout: WorkoutWithRegion) => (
+          <WorkoutCard key={workout.id} workout={workout} />
         ))}
       </div>
 

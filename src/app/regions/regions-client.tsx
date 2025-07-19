@@ -1,7 +1,7 @@
 'use client';
 
 import SearchableRegionList from '@/components/SearchableRegionList';
-import { Region } from '@/types/Region';
+import { Region } from '@/types/Workout';
 interface RegionsClientProps {
   regions: Omit<Region, 'id'>[];
   currentLetter: string;

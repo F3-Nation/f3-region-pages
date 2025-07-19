@@ -1,10 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, KeyboardEvent, useMemo } from 'react';
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  KeyboardEvent,
+  useMemo,
+} from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ALL_LETTERS } from '@/lib/const';
-import { Region } from '@/types/Region';
+import { Region } from '@/types/Workout';
 
 interface Props {
   regions: Omit<Region, 'id'>[];
@@ -50,8 +57,8 @@ export default function SearchableRegionList({
   );
 
   useEffect(() => {
-    if(filteredRegions.length === 1) setSelectedIndex(0); 
-  }, [filteredRegions]);  
+    if (filteredRegions.length === 1) setSelectedIndex(0);
+  }, [filteredRegions]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -72,8 +79,10 @@ export default function SearchableRegionList({
           e.preventDefault();
           if (selectedIndex >= 0 && selectedIndex < filteredRegions.length) {
             const { slug } = filteredRegions[selectedIndex];
-            setIsLoading(true);
-            router.push(`/regions/${slug}`);
+            if (slug) {
+              setIsLoading(true);
+              router.push(`/regions/${slug}`);
+            }
           }
           break;
         case 'Escape':
@@ -88,9 +97,11 @@ export default function SearchableRegionList({
   );
 
   const handleSuggestionClick = useCallback(
-    (slug: string) => {
-      setIsLoading(true);
-      router.push(`/regions/${slug}`);
+    (slug: string | null) => {
+      if (slug) {
+        setIsLoading(true);
+        router.push(`/regions/${slug}`);
+      }
     },
     [router]
   );

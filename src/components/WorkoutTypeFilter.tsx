@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { RawPointData } from '@/types/Points';
+import { WorkoutWithRegion } from '@/types/Workout';
 
 interface WorkoutTypeFilterProps {
-  workouts: RawPointData[];
-  onFilteredWorkouts: (workouts: RawPointData[]) => void;
+  workouts: WorkoutWithRegion[];
+  onFilteredWorkouts: (workouts: WorkoutWithRegion[]) => void;
 }
 
 export function WorkoutTypeFilter({
