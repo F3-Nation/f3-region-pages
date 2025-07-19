@@ -19,6 +19,7 @@
     "db:reset": "bun scripts/reset.ts",
     "db:seed": "bun scripts/seed.ts",
     "db:setup:local": "scripts/db-setup-local.sh",
+    "db:generate:warehouse-schema": "bun scripts/generate-warehouse-schema.ts",
     "docker:kill": "scripts/docker-kill.sh",
     "supabase:start": "supabase start",
     "firebase:setup-secrets": "/usr/bin/env bash scripts/firebase-env.sh",
