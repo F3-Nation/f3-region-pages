@@ -1,5 +1,5 @@
 // Step 3: Implement ISR with Dynamic Routes
-// Edit app/regions/[regionSlug]/page.tsx
+// Edit app/[regionSlug]/page.tsx
 
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';

@@ -57,7 +57,7 @@ export function RegionContent({
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
         <Link
-          href="/regions"
+          href="/"
           className="inline-flex items-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
         >
           <svg

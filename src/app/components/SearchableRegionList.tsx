@@ -45,7 +45,7 @@ export default function SearchableRegionList({
           if (selectedIndex >= 0 && selectedIndex < filteredRegions.length) {
             const selectedSlug = filteredRegions[selectedIndex];
             setIsLoading(true);
-            router.push(`/regions/${selectedSlug}`);
+            router.push(`/${selectedSlug}`);
           }
           break;
         case 'Escape':
@@ -62,7 +62,7 @@ export default function SearchableRegionList({
   const handleSuggestionClick = useCallback(
     (slug: string) => {
       setIsLoading(true);
-      router.push(`/regions/${slug}`);
+      router.push(`/${slug}`);
     },
     [router]
   );
@@ -155,7 +155,7 @@ export default function SearchableRegionList({
         {(filteredRegions.length > 0 ? filteredRegions : []).map((slug) => (
           <li key={slug}>
             <Link
-              href={`/regions/${slug}`}
+              href={`/${slug}`}
               className="block p-4 rounded-lg 
                 border border-gray-200 dark:border-gray-700 
                 hover:border-gray-300 dark:hover:border-gray-600 
