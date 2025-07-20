@@ -19,16 +19,12 @@ interface RegionContentProps {
 
 function FilteredContent({
   sortedWorkouts,
-  mapParams,
 }: {
   sortedWorkouts: WorkoutWithRegion[];
-  mapParams: MapParameters;
 }) {
   const searchParams = useSearchParams();
-  const hasActiveFilters = searchParams.has('day') || searchParams.has('type');
   const [filteredWorkouts, setFilteredWorkouts] =
     useState<WorkoutWithRegion[]>(sortedWorkouts);
-  const mapUrl = getMapUrl(mapParams);
 
   return (
     <>
@@ -47,18 +43,6 @@ function FilteredContent({
           <WorkoutList workouts={filteredWorkouts} />
         </Suspense>
       </div>
-
-      {!hasActiveFilters && (
-        <div className="mb-8">
-          <iframe
-            src={mapUrl}
-            className="w-full h-[400px] rounded-lg border border-gray-200 dark:border-gray-700"
-            title={`F3 Workout Locations Map`}
-            loading="lazy"
-            allowFullScreen
-          />
-        </div>
-      )}
     </>
   );
 }
@@ -69,6 +53,8 @@ export function RegionContent({
   sortedWorkouts,
   mapParams,
 }: RegionContentProps) {
+  const mapUrl = getMapUrl(mapParams);
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
@@ -103,11 +89,51 @@ export function RegionContent({
 
       <RegionHeader regionName={regionName} website={website} />
 
+      {/* Personalized Maps CTA Banner */}
+      <div className="mb-8 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <svg
+              className="w-6 h-6 text-green-600 dark:text-green-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <div>
+              <span className="text-green-900 dark:text-green-100 font-medium">
+                View {regionName} on the Map
+              </span>
+              <p className="text-sm text-green-700 dark:text-green-300">
+                See all workout locations and get directions
+              </p>
+            </div>
+          </div>
+          <a
+            href={mapUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
+          >
+            Open Map →
+          </a>
+        </div>
+      </div>
+
       <Suspense fallback={<div>Loading content...</div>}>
-        <FilteredContent
-          sortedWorkouts={sortedWorkouts}
-          mapParams={mapParams}
-        />
+        <FilteredContent sortedWorkouts={sortedWorkouts} />
       </Suspense>
     </div>
   );
