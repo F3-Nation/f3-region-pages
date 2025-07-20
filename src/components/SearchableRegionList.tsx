@@ -164,7 +164,7 @@ export default function SearchableRegionList({
     (letter: string) => {
       setSearchQuery('');
       setSelectedIndex(-1);
-      router.push(`/regions?letter=${letter.toLowerCase()}`);
+      router.push(`/?letter=${letter.toLowerCase()}`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
     [router]
@@ -195,7 +195,7 @@ export default function SearchableRegionList({
             const { slug } = filteredRegions[selectedIndex];
             if (slug) {
               setIsLoading(true);
-              router.push(`/regions/${slug}`);
+              router.push(`/${slug}`);
             }
           }
           break;
@@ -214,7 +214,7 @@ export default function SearchableRegionList({
     (slug: string | null) => {
       if (slug) {
         setIsLoading(true);
-        router.push(`/regions/${slug}`);
+        router.push(`/${slug}`);
       }
     },
     [router]
@@ -238,7 +238,7 @@ export default function SearchableRegionList({
                 setSearchQuery(e.target.value);
                 setSelectedIndex(-1);
                 if (!e.target.value) {
-                  router.push(`/regions?letter=${currentLetter.toLowerCase()}`);
+                  router.push(`/?letter=${currentLetter.toLowerCase()}`);
                 }
               }}
               onKeyDown={handleKeyDown}
@@ -500,7 +500,7 @@ export default function SearchableRegionList({
         {displayRegions.map((region) => (
           <li key={region.slug}>
             <Link
-              href={`/regions/${region.slug}`}
+              href={`/${region.slug}`}
               className="block p-4 rounded-lg 
                 border border-gray-200 dark:border-gray-700 
                 hover:border-gray-300 dark:hover:border-gray-600 
