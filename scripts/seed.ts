@@ -82,7 +82,13 @@ async function seedWorkouts() {
   let i = 1;
   for await (const workout of workouts) {
     console.debug(`inserting workouts ${i}: ${workout.name}`);
-    await db.insert(workoutsSchema).values(workout).onConflictDoNothing();
+    await db
+      .insert(workoutsSchema)
+      .values(workout)
+      .onConflictDoUpdate({
+        target: [workoutsSchema.id],
+        set: workout,
+      });
     i++;
   }
   console.debug('✅ done inserting workouts');
@@ -91,10 +97,6 @@ async function seedWorkouts() {
 type Workout = typeof workoutsSchema.$inferInsert;
 
 async function* fetchWorkouts(): AsyncGenerator<Workout> {
-  const previouslyIngestedWorkouts = await db
-    .select({ id: workoutsSchema.id })
-    .from(workoutsSchema)
-    .orderBy(asc(workoutsSchema.id));
   const workouts = await f3DataWarehouseDb
     .select({
       id: eventsSchema.id,
@@ -107,14 +109,7 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
       group: eventsSchema.dayOfWeek,
     })
     .from(eventsSchema)
-    .where(
-      and(
-        eq(eventsSchema.isActive, true),
-        notInArray(eventsSchema.id, [
-          ...previouslyIngestedWorkouts.map((w) => parseInt(w.id)),
-        ])
-      )
-    )
+    .where(eq(eventsSchema.isActive, true))
     .orderBy(asc(eventsSchema.name));
 
   const types = ['bootcamp', 'ruck', 'run', 'sandbag'];
