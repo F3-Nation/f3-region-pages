@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { RegionHeader } from '@/components/RegionHeader';
 import { WorkoutList } from '@/components/WorkoutList';
 import { WorkoutFilters } from '@/components/WorkoutFilters';
@@ -22,7 +21,6 @@ function FilteredContent({
 }: {
   sortedWorkouts: WorkoutWithRegion[];
 }) {
-  const searchParams = useSearchParams();
   const [filteredWorkouts, setFilteredWorkouts] =
     useState<WorkoutWithRegion[]>(sortedWorkouts);
 
