@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { RawPointData } from '@/types/Points';
+import { WorkoutWithRegion } from '@/types/Workout';
 
 const DAYS_OF_WEEK = [
   'Sunday',
@@ -15,8 +15,8 @@ const DAYS_OF_WEEK = [
 ];
 
 interface DayFilterProps {
-  workouts: RawPointData[];
-  onFilteredWorkouts: (workouts: RawPointData[]) => void;
+  workouts: WorkoutWithRegion[];
+  onFilteredWorkouts: (workouts: WorkoutWithRegion[]) => void;
 }
 
 export function DayFilter({ workouts, onFilteredWorkouts }: DayFilterProps) {

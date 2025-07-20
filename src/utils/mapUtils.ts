@@ -76,10 +76,19 @@ export function getMapUrl(params: MapParameters): string {
  * @returns Object containing latitude, longitude, and zoom level
  */
 export function calculateMapParameters(
-  workouts: Array<{ latitude: string; longitude: string; name: string }>
+  workouts: Array<{
+    latitude?: number | null;
+    longitude?: number | null;
+    name: string;
+  }>
 ): MapParameters {
-  // Default to a central US location if no workouts
-  if (!workouts.length) {
+  // Filter out workouts without coordinates
+  const workoutsWithCoords = workouts.filter(
+    (workout) => workout.latitude != null && workout.longitude != null
+  );
+
+  // Default to a central US location if no workouts with coordinates
+  if (!workoutsWithCoords.length) {
     return {
       center: { lat: 39.8283, lng: -98.5795 },
       zoom: 4,
@@ -87,9 +96,9 @@ export function calculateMapParameters(
     };
   }
 
-  const markers = workouts.map((workout) => ({
-    lat: parseFloat(workout.latitude),
-    lng: parseFloat(workout.longitude),
+  const markers = workoutsWithCoords.map((workout) => ({
+    lat: workout.latitude!,
+    lng: workout.longitude!,
     title: workout.name,
   }));
 

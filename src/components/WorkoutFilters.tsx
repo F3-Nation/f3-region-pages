@@ -5,11 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import { DayFilter } from '@/components/DayFilter';
 import { WorkoutTypeFilter } from '@/components/WorkoutTypeFilter';
 import { ClearFiltersButton } from '@/components/ClearFiltersButton';
-import { RawPointData } from '@/types/Points';
+import { WorkoutWithRegion } from '@/types/Workout';
 
 interface WorkoutFiltersProps {
-  workouts: RawPointData[];
-  onFilteredWorkouts: (workouts: RawPointData[]) => void;
+  workouts: WorkoutWithRegion[];
+  onFilteredWorkouts: (workouts: WorkoutWithRegion[]) => void;
 }
 
 export function WorkoutFilters({

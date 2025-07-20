@@ -8,12 +8,12 @@ import { WorkoutList } from '@/components/WorkoutList';
 import { WorkoutFilters } from '@/components/WorkoutFilters';
 import { getMapUrl } from '@/utils/mapUtils';
 import type { MapParameters } from '@/utils/mapUtils';
-import { RawPointData } from '@/types/Points';
+import { WorkoutWithRegion } from '@/types/Workout';
 
 interface RegionContentProps {
   regionName: string;
   website?: string;
-  sortedWorkouts: RawPointData[];
+  sortedWorkouts: WorkoutWithRegion[];
   mapParams: MapParameters;
 }
 
@@ -21,13 +21,13 @@ function FilteredContent({
   sortedWorkouts,
   mapParams,
 }: {
-  sortedWorkouts: RawPointData[];
+  sortedWorkouts: WorkoutWithRegion[];
   mapParams: MapParameters;
 }) {
   const searchParams = useSearchParams();
   const hasActiveFilters = searchParams.has('day') || searchParams.has('type');
   const [filteredWorkouts, setFilteredWorkouts] =
-    useState<RawPointData[]>(sortedWorkouts);
+    useState<WorkoutWithRegion[]>(sortedWorkouts);
   const mapUrl = getMapUrl(mapParams);
 
   return (

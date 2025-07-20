@@ -9,7 +9,6 @@ import {
 } from '@/utils/fetchWorkoutLocations';
 import { sortWorkoutsByDayAndTime } from '@/utils/workoutSorting';
 import { calculateMapParameters } from '@/utils/mapUtils';
-import { extractCityAndState } from '@/utils/locationUtils';
 import { RegionContent } from '@/components/RegionContent';
 
 interface RegionProps {
@@ -22,7 +21,7 @@ export const generateStaticParams = async () =>
   (await fetchRegions()).map((region) => ({
     id: region.id,
     regionName: region.name,
-    regionSlug: region.slug,
+    regionSlug: region.slug || '',
   }));
 
 export async function generateMetadata({
@@ -40,10 +39,10 @@ export async function generateMetadata({
     };
   }
 
-  const regionName = regionData[0].region;
-  const locations = regionData.map((workout) =>
-    extractCityAndState(workout.location)
-  );
+  const regionName = regionData[0].region.name;
+  const locations = regionData
+    .map((workout) => workout.location)
+    .filter(Boolean);
   const uniqueLocations = [...new Set(locations)];
   const locationString =
     uniqueLocations.slice(0, 3).join(', ') +
@@ -65,13 +64,13 @@ export default async function RegionPage({
     notFound();
   }
 
-  const regionName = regionData[0].region;
-  const website = regionData[0].website;
+  const regionName = regionData[0].region.name;
+  const website = regionData[0].region.website || undefined;
   const mapParams = calculateMapParameters(
-    regionData.map(({ latitude, longitude, name }) => ({
-      latitude: latitude.toString(),
-      longitude: longitude.toString(),
-      name,
+    regionData.map((workout) => ({
+      latitude: workout.latitude,
+      longitude: workout.longitude,
+      name: workout.name,
     }))
   );
 

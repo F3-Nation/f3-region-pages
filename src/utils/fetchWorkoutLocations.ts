@@ -1,10 +1,9 @@
 import { unstable_cache } from 'next/cache';
-import { Region } from '@/types/Region';
+import { Region, WorkoutWithRegion } from '@/types/Workout';
 import { db } from '../../drizzle/db';
-import { regions, rawPoints } from '../../drizzle/schema';
+import { regions, workouts } from '../../drizzle/schema';
 import { ALL_LETTERS, cacheTtl } from '@/lib/const';
 import { eq } from 'drizzle-orm';
-import { RawPointData } from '@/types/Points';
 
 // Convert time to 12-hour format, handling various input formats
 const convertTo12Hour = (time: string): string => {
@@ -57,6 +56,14 @@ const getCachedRegions = unstable_cache(
           id: regions.id,
           name: regions.name,
           slug: regions.slug,
+          website: regions.website,
+          city: regions.city,
+          state: regions.state,
+          zip: regions.zip,
+          country: regions.country,
+          latitude: regions.latitude,
+          longitude: regions.longitude,
+          zoom: regions.zoom,
         })
         .from(regions)
         .orderBy(regions.name);
@@ -71,35 +78,64 @@ const getCachedRegions = unstable_cache(
 
 // Cache workouts for a specific region
 const getCachedRegionWorkouts = unstable_cache(
-  async (regionSlug: string): Promise<RawPointData[]> => {
+  async (regionSlug: string): Promise<WorkoutWithRegion[]> => {
     try {
-      /** TODO: pivot to enriched workoutlocations table */
-      const regionId = (
-        await db
-          .select({ id: regions.id })
-          .from(regions)
-          .where(eq(regions.slug, regionSlug))
-          .limit(1)
-      )[0].id;
-      const _rawPoints = await db
+      const regionData = await db
         .select({
-          data: rawPoints.data,
+          id: regions.id,
+          name: regions.name,
+          slug: regions.slug,
+          website: regions.website,
+          city: regions.city,
+          state: regions.state,
+          zip: regions.zip,
+          country: regions.country,
+          latitude: regions.latitude,
+          longitude: regions.longitude,
+          zoom: regions.zoom,
         })
-        .from(rawPoints)
-        .where(eq(rawPoints.regionId, regionId))
-        .orderBy(rawPoints.entryId);
+        .from(regions)
+        .where(eq(regions.slug, regionSlug))
+        .limit(1);
 
-      if (!_rawPoints || _rawPoints.length === 0) {
+      if (!regionData || regionData.length === 0) {
+        console.warn(`No region found for slug: ${regionSlug}`);
+        return [];
+      }
+
+      const region = regionData[0];
+      const regionWorkouts = await db
+        .select({
+          id: workouts.id,
+          regionId: workouts.regionId,
+          name: workouts.name,
+          time: workouts.time,
+          type: workouts.type,
+          group: workouts.group,
+          image: workouts.image,
+          notes: workouts.notes,
+          latitude: workouts.latitude,
+          longitude: workouts.longitude,
+          location: workouts.location,
+        })
+        .from(workouts)
+        .where(eq(workouts.regionId, region.id))
+        .orderBy(workouts.name);
+
+      if (!regionWorkouts || regionWorkouts.length === 0) {
         console.warn(`No workouts found for region slug: ${regionSlug}`);
         return [];
       }
 
-      return _rawPoints.map((row) => {
-        const data = row.data as RawPointData;
-        const normalizedTime = data.time
-          ? normalizeTimeRange(data.time)
-          : undefined;
-        return { ...data, time: normalizedTime } as RawPointData;
+      return regionWorkouts.map((workout) => {
+        const normalizedTime = workout.time
+          ? normalizeTimeRange(workout.time)
+          : workout.time;
+        return {
+          ...workout,
+          time: normalizedTime,
+          region,
+        } as WorkoutWithRegion;
       });
     } catch (error) {
       console.error('Error fetching workouts for region:', error);
@@ -132,4 +168,4 @@ export const fetchRegionsByLetter = async (): Promise<
 
 export const fetchWorkoutLocationsByRegion = async (
   regionSlug: string
-): Promise<RawPointData[]> => await getCachedRegionWorkouts(regionSlug);
+): Promise<WorkoutWithRegion[]> => await getCachedRegionWorkouts(regionSlug);
