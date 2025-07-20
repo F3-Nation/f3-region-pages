@@ -112,7 +112,6 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
     .where(eq(eventsSchema.isActive, true))
     .orderBy(asc(eventsSchema.name));
 
-  const types = ['bootcamp', 'ruck', 'run', 'sandbag'];
   for await (const workout of workouts) {
     const [workoutTypeLkp] = await f3DataWarehouseDb
       .select()
