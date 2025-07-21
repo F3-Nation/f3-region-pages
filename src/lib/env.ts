@@ -16,5 +16,6 @@ export function loadEnvConfig() {
     POSTGRES_URL: process.env.POSTGRES_URL,
     F3_DATA_WAREHOUSE_URL: process.env.F3_DATA_WAREHOUSE_URL,
     NODE_ENV: env,
+    SEED_API_KEY: process.env.SEED_API_KEY,
   };
 }
