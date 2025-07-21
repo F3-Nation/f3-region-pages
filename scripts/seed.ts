@@ -11,6 +11,8 @@ import {
   orgs as orgsSchema,
   events as eventsSchema,
   locations as locationsSchema,
+  eventsXEventTypes as eventsXEventTypesSchema,
+  eventTypes as eventTypesSchema,
 } from '../drizzle/f3-data-warehouse/schema';
 
 async function seedDatabase() {
@@ -80,7 +82,13 @@ async function seedWorkouts() {
   let i = 1;
   for await (const workout of workouts) {
     console.debug(`inserting workouts ${i}: ${workout.name}`);
-    await db.insert(workoutsSchema).values(workout).onConflictDoNothing();
+    await db
+      .insert(workoutsSchema)
+      .values(workout)
+      .onConflictDoUpdate({
+        target: [workoutsSchema.id],
+        set: workout,
+      });
     i++;
   }
   console.debug('✅ done inserting workouts');
@@ -89,10 +97,6 @@ async function seedWorkouts() {
 type Workout = typeof workoutsSchema.$inferInsert;
 
 async function* fetchWorkouts(): AsyncGenerator<Workout> {
-  const previouslyIngestedWorkouts = await db
-    .select({ id: workoutsSchema.id })
-    .from(workoutsSchema)
-    .orderBy(asc(workoutsSchema.id));
   const workouts = await f3DataWarehouseDb
     .select({
       id: eventsSchema.id,
@@ -105,26 +109,33 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
       group: eventsSchema.dayOfWeek,
     })
     .from(eventsSchema)
-    .where(
-      and(
-        eq(eventsSchema.isActive, true),
-        notInArray(eventsSchema.id, [
-          ...previouslyIngestedWorkouts.map((w) => parseInt(w.id)),
-        ])
-      )
-    )
+    .where(eq(eventsSchema.isActive, true))
     .orderBy(asc(eventsSchema.name));
 
-  const types = ['bootcamp', 'ruck', 'run', 'sandbag'];
   for await (const workout of workouts) {
-    let workoutType = 'bootcamp';
-    const _notes = workout.notes;
-    for (const type of types) {
-      if (_notes?.includes(type)) {
-        workoutType = type;
-        break;
-      }
+    const [workoutTypeLkp] = await f3DataWarehouseDb
+      .select()
+      .from(eventsXEventTypesSchema)
+      .where(eq(eventsXEventTypesSchema.eventId, workout.id))
+      .limit(1);
+    if (!workoutTypeLkp) {
+      console.warn(
+        `[WARN] no workout type lkp found for workout ${workout.id} (${workout.name})`
+      );
+      continue;
     }
+    const [workoutType] = await f3DataWarehouseDb
+      .select()
+      .from(eventTypesSchema)
+      .where(eq(eventTypesSchema.id, workoutTypeLkp.eventTypeId))
+      .limit(1);
+    if (!workoutType) {
+      console.warn(
+        `[WARN] no workout type found for workout ${workout.id} (${workout.name})`
+      );
+      continue;
+    }
+
     const [ao] = await f3DataWarehouseDb
       .select()
       .from(orgsSchema)
@@ -213,8 +224,7 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
       regionId: region.id,
       name: workout.name,
       time: `${workout.startTime} - ${workout.endTime}`,
-      /** @todo more precise workoutType matching, preferably from maps data */
-      type: workoutType,
+      type: workoutType.name,
       group: workout.group,
       /** @todo remove */
       image: '',
