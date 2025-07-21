@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Configuration constants
-SECRET_VARS=("POSTGRES_URL" "F3_DATA_WAREHOUSE_URL")
-SECRET_IDS=("postgres-url" "f3-data-warehouse-url")
+SECRET_VARS=("POSTGRES_URL" "F3_DATA_WAREHOUSE_URL" "SEED_API_KEY")
+SECRET_IDS=("postgres-url" "f3-data-warehouse-url" "seed-api-key")
 
 #####################################
 # MAIN EXECUTION FUNCTION
@@ -150,7 +150,7 @@ validate_env_file() {
   if [[ ! -f "$env_file" ]]; then
     log_error ".env.local file not found at $env_file"
     log_error "Please create this file with your environment variables."
-    log_error "Required variables: POSTGRES_URL, F3_DATA_WAREHOUSE_URL"
+    log_error "Required variables: POSTGRES_URL, F3_DATA_WAREHOUSE_URL, SEED_API_KEY"
     return 1
   fi
   
