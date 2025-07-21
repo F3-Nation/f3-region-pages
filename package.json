@@ -24,7 +24,8 @@
     "docker:kill": "scripts/docker-kill.sh",
     "supabase:start": "supabase start",
     "firebase:setup-secrets": "/usr/bin/env bash scripts/firebase-env.sh",
-    "firebase:deploy": "firebase deploy"
+    "firebase:deploy": "firebase deploy",
+    "firebase:deploy:cron": "/usr/bin/env bash scripts/deploy-seed-cron.sh"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
