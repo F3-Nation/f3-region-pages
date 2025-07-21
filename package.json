@@ -18,6 +18,7 @@
     "db:push": "drizzle-kit push --config drizzle.config.ts",
     "db:reset": "bun scripts/reset.ts",
     "db:seed": "bun scripts/seed/seed.ts",
+    "db:seed:api": "bun scripts/seed/seed-api.ts",
     "db:setup:local": "scripts/db-setup-local.sh",
     "db:generate:warehouse-schema": "bun scripts/generate-warehouse-schema.ts",
     "docker:kill": "scripts/docker-kill.sh",
