@@ -6,6 +6,8 @@ import {
 } from '../../../../scripts/seed';
 import { loadEnvConfig } from '../../../lib/env';
 
+export const maxDuration = 60 * 15; // 15 minutes
+
 export async function POST(request: NextRequest) {
   try {
     // Load environment configuration
