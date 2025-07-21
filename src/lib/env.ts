@@ -16,10 +16,15 @@ export function loadEnvConfig() {
     throw new Error(`SEED_API_KEY is not set in .env.${env}`);
   }
 
+  if (!process.env.SEED_API_URL) {
+    throw new Error(`SEED_API_URL is not set in .env.${env}`);
+  }
+
   return {
     POSTGRES_URL: process.env.POSTGRES_URL,
     F3_DATA_WAREHOUSE_URL: process.env.F3_DATA_WAREHOUSE_URL,
     SEED_API_KEY: process.env.SEED_API_KEY,
+    SEED_API_URL: process.env.SEED_API_URL,
     NODE_ENV: env,
   };
 }
