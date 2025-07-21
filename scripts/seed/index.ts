@@ -1,27 +1,21 @@
 import { eq, asc, and, notInArray } from 'drizzle-orm';
 
-import { toKebabCase } from '../src/utils/toKebabCase';
-import { db } from '../drizzle/db';
+import { toKebabCase } from '../../src/utils/toKebabCase';
+import { db } from '../../drizzle/db';
 import {
   regions as regionsSchema,
   workouts as workoutsSchema,
-} from '../drizzle/schema';
-import { db as f3DataWarehouseDb } from '../drizzle/f3-data-warehouse/db';
+} from '../../drizzle/schema';
+import { db as f3DataWarehouseDb } from '../../drizzle/f3-data-warehouse/db';
 import {
   orgs as orgsSchema,
   events as eventsSchema,
   locations as locationsSchema,
   eventsXEventTypes as eventsXEventTypesSchema,
   eventTypes as eventTypesSchema,
-} from '../drizzle/f3-data-warehouse/schema';
+} from '../../drizzle/f3-data-warehouse/schema';
 
-async function seedDatabase() {
-  await seedRegions();
-  await seedWorkouts();
-  await enrichRegions();
-}
-
-async function seedRegions() {
+export async function seedRegions() {
   console.debug('🔄 seeding regions...');
   const regions = fetchRegions();
   let i = 1;
@@ -76,7 +70,7 @@ async function* fetchRegions(): AsyncGenerator<Region> {
   }
 }
 
-async function seedWorkouts() {
+export async function seedWorkouts() {
   console.debug('🔄 seeding workouts...');
   const workouts = fetchWorkouts();
   let i = 1;
@@ -240,7 +234,7 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
   }
 }
 
-async function enrichRegions() {
+export async function enrichRegions() {
   console.debug('🔄 enriching regions...');
   const regions = await db
     .select()
@@ -352,5 +346,3 @@ async function enrichRegions() {
   }
   console.debug('✅ done enriching regions');
 }
-
-seedDatabase();
