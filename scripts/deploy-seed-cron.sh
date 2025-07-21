@@ -14,8 +14,12 @@ SCHEDULER_NAME="seed-api-cron-job"
 RUNTIME="nodejs20"
 SECRET_URL_NAME="seed-api-url"
 SECRET_KEY_NAME="seed-api-key"
-TMP_DIR=$(mktemp -d)
 ENV_FILE=".env.local"
+TMP_DIR=$(mktemp -d)
+
+# Service account for Cloud Functions
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
+CLOUD_FUNCTIONS_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 
 # 1. CHECK DEPENDENCIES
 declare -a tools=(gcloud jq npm)
@@ -39,23 +43,38 @@ if [[ -z "$SEED_API_URL" || -z "$SEED_API_KEY" ]]; then
 fi
 
 # 3. CREATE/UPDATE SECRETS
-echo "🔑 Creating/updating secrets..."
-for secret_name in "$SECRET_URL_NAME" "$SECRET_KEY_NAME"; do
-  if ! gcloud secrets describe "$secret_name" --project="$PROJECT_ID" &>/dev/null; then
-    gcloud secrets create "$secret_name" --replication-policy="automatic" --project="$PROJECT_ID"
+create_or_update_secret() {
+  local secret_name="$1"
+  local secret_value="$2"
+  if gcloud secrets describe "$secret_name" --project="$PROJECT_ID" --quiet &>/dev/null; then
+    echo "ℹ️  Secret '$secret_name' exists, adding new version..."
+    echo -n "$secret_value" | gcloud secrets versions add "$secret_name" --data-file=- --project="$PROJECT_ID" --quiet
+  else
+    echo "ℹ️  Creating secret '$secret_name'..."
+    echo -n "$secret_value" | gcloud secrets create "$secret_name" --replication-policy="automatic" --data-file=- --project="$PROJECT_ID" --quiet
   fi
-done
-echo -n "$SEED_API_URL" | gcloud secrets versions add "$SECRET_URL_NAME" --data-file=- --project="$PROJECT_ID"
-echo -n "$SEED_API_KEY" | gcloud secrets versions add "$SECRET_KEY_NAME" --data-file=- --project="$PROJECT_ID"
+}
 
-echo "🔒 Granting Secret Manager access to Cloud Functions service account..."
-PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor" \
-  --quiet
+echo "🔑 Creating/updating secrets..."
+create_or_update_secret "$SECRET_URL_NAME" "$SEED_API_URL"
+create_or_update_secret "$SECRET_KEY_NAME" "$SEED_API_KEY"
 
-# 4. CREATE FUNCTION CODE
+# 4. GRANT SECRET ACCESSOR TO CLOUD FUNCTIONS SERVICE ACCOUNT
+add_secret_accessor() {
+  local secret_name="$1"
+  local sa_email="$2"
+  echo "🔒 Granting Secret Manager access to $sa_email on $secret_name..."
+  gcloud secrets add-iam-policy-binding "$secret_name" \
+    --member="serviceAccount:$sa_email" \
+    --role="roles/secretmanager.secretAccessor" \
+    --project="$PROJECT_ID" \
+    --quiet
+}
+
+add_secret_accessor "$SECRET_URL_NAME" "$CLOUD_FUNCTIONS_SA"
+add_secret_accessor "$SECRET_KEY_NAME" "$CLOUD_FUNCTIONS_SA"
+
+# 5. CREATE FUNCTION CODE
 echo "📝 Writing function code..."
 FUNC_DIR="$TMP_DIR/function"
 mkdir -p "$FUNC_DIR"
@@ -113,7 +132,7 @@ EOF
 npm config set registry https://registry.npmjs.org/
 (cd "$FUNC_DIR" && npm install --omit=dev)
 
-# 5. DEPLOY FUNCTION
+# 6. DEPLOY FUNCTION
 echo "🚀 Deploying function..."
 gcloud functions deploy "$FUNCTION_NAME" \
   --region="$REGION" \
@@ -126,7 +145,7 @@ gcloud functions deploy "$FUNCTION_NAME" \
   --memory=256MB \
   --timeout=900s
 
-# 6. GET FUNCTION URL
+# 7. GET FUNCTION URL
 FUNC_URL=$(gcloud functions describe "$FUNCTION_NAME" --region="$REGION" --format='value(serviceConfig.uri)')
 if [[ -z "$FUNC_URL" ]]; then
   echo "❌ Could not get function URL" >&2
@@ -135,7 +154,7 @@ fi
 
 echo "🌐 Function URL: $FUNC_URL"
 
-# 7. CREATE SCHEDULER JOB
+# 8. CREATE SCHEDULER JOB
 echo "⏰ Creating/updating Cloud Scheduler job..."
 if gcloud scheduler jobs describe "$SCHEDULER_NAME" --location="$REGION" &>/dev/null; then
   gcloud scheduler jobs delete "$SCHEDULER_NAME" --location="$REGION" --quiet
@@ -148,7 +167,7 @@ gcloud scheduler jobs create http "$SCHEDULER_NAME" \
   --oidc-service-account-email="$(gcloud iam service-accounts list --format='value(email)' | grep 'cloud-functions' | head -n1)" \
   --location="$REGION"
 
-echo "✅ Deployment complete. The function will run daily at 6:30am."
+echo "✅ Deployment complete. The function will run daily at 7:00am."
 
-# 8. CLEANUP
+# 9. CLEANUP
 rm -rf "$TMP_DIR" 
