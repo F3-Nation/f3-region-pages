@@ -23,7 +23,7 @@ export default async function HomePage({ searchParams }: RegionsPageProps) {
   const [regions, regionsByLetter, resolvedParams]: [
     Region[],
     Record<string, Omit<Region, 'id'>[]>,
-    any
+    { letter?: string }
   ] = await Promise.all([fetchRegions(), fetchRegionsByLetter(), searchParams]);
 
   // Get current letter from URL or default to first available letter with regions

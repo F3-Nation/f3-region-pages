@@ -77,6 +77,14 @@ async function enrichRegions() {
   const regions = await db
     .select()
     .from(regionsSchema)
+    .where(
+      and(
+        eq(regionsSchema.city, 'city'),
+        eq(regionsSchema.state, 'state'),
+        eq(regionsSchema.zip, 'zip'),
+        eq(regionsSchema.country, 'country')
+      )
+    )
     .orderBy(asc(regionsSchema.name));
   for (let i = 0; i < regions.length; i++) {
     const region = regions[i];
