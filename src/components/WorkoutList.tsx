@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { WorkoutCard } from '@/components/WorkoutCard';
-import { WorkoutWithRegion } from '@/types/Workout';
+import type { WorkoutWithRegion } from '@/utils/f3WarehouseAdapters';
+// NOTE: WorkoutWithRegion type now comes from f3DataWarehouse schema via f3WarehouseAdapters utilities.
 
 interface WorkoutListProps {
   workouts: WorkoutWithRegion[];

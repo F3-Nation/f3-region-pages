@@ -1,12 +1,9 @@
-// Step 3: Implement ISR with Dynamic Routes
-// Edit app/[regionSlug]/page.tsx
-
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import {
-  fetchRegions,
-  fetchWorkoutLocationsByRegion,
-} from '@/utils/fetchWorkoutLocations';
+  fetchAllRegions as fetchRegions,
+  fetchWorkoutsByRegionSlug as fetchWorkoutLocationsByRegion,
+} from '@/utils/f3WarehouseAdapters';
 import { sortWorkoutsByDayAndTime } from '@/utils/workoutSorting';
 import { calculateMapParameters } from '@/utils/mapUtils';
 import { RegionContent } from '@/components/RegionContent';

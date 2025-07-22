@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import SearchableRegionList from './SearchableRegionList';
-import type { Region } from '@/types/Workout';
+import type { Region } from '@/utils/f3WarehouseAdapters';
+// NOTE: Region type now comes from f3DataWarehouse schema via f3WarehouseAdapters utilities.
 
 interface RegionsClientProps {
   regions: Omit<Region, 'id'>[];

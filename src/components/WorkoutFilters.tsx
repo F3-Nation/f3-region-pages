@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { DayFilter } from '@/components/DayFilter';
 import { WorkoutTypeFilter } from '@/components/WorkoutTypeFilter';
 import { ClearFiltersButton } from '@/components/ClearFiltersButton';
-import { WorkoutWithRegion } from '@/types/Workout';
+import type { WorkoutWithRegion } from '@/utils/f3WarehouseAdapters';
 
 interface WorkoutFiltersProps {
   workouts: WorkoutWithRegion[];
@@ -44,6 +44,9 @@ export function WorkoutFilters({
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="sm:hidden w-full flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-200"
+        aria-expanded={isExpanded}
+        aria-controls="workout-filters-content"
+        type="button"
       >
         <div className="flex items-center gap-2">
           <svg
@@ -79,7 +82,10 @@ export function WorkoutFilters({
       </button>
 
       {/* Filters Content */}
-      <div className={`space-y-4 ${!isExpanded ? 'hidden sm:block' : 'mt-4'}`}>
+      <div
+        id="workout-filters-content"
+        className={`space-y-4 ${!isExpanded ? 'hidden sm:block' : 'mt-4'}`}
+      >
         <DayFilter
           workouts={workouts}
           onFilteredWorkouts={onFilteredWorkouts}
@@ -88,9 +94,14 @@ export function WorkoutFilters({
           workouts={workouts}
           onFilteredWorkouts={onFilteredWorkouts}
         />
-        <div className="sm:hidden">
-          <ClearFiltersButton />
-        </div>
+        <div className="sm:hidden">{hasFilters && <ClearFiltersButton />}</div>
+      </div>
+      {/* Desktop: Always show summary and clear button */}
+      <div className="hidden sm:flex items-center gap-2 mt-2">
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          {getFilterSummary()}
+        </span>
+        {hasFilters && <ClearFiltersButton />}
       </div>
     </div>
   );

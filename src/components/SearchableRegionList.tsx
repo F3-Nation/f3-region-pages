@@ -11,7 +11,8 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ALL_LETTERS } from '@/lib/const';
-import { Region } from '@/types/Workout';
+import type { Region } from '@/utils/f3WarehouseAdapters';
+// NOTE: Region type now comes from f3DataWarehouse schema via f3WarehouseAdapters utilities.
 import { calculateHaversineDistance } from '@/utils/mapUtils';
 
 interface Props {
