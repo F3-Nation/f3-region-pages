@@ -1,11 +1,14 @@
 import {
-  fetchRegions,
+  fetchAllRegions as fetchRegions,
   fetchRegionsByLetter,
-} from '@/utils/fetchWorkoutLocations';
+} from '@/utils/f3WarehouseAdapters';
 import { RegionsClient } from '@/components/RegionsClient';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { ALL_LETTERS } from '@/lib/const';
+import type { Region } from '@/utils/f3WarehouseAdapters';
+
+// NOTE: Data now comes from the f3DataWarehouse schema via f3WarehouseAdapters utilities.
 
 export const metadata: Metadata = {
   title: 'All Regions',
@@ -17,11 +20,11 @@ interface RegionsPageProps {
 }
 
 export default async function HomePage({ searchParams }: RegionsPageProps) {
-  const [regions, regionsByLetter, resolvedParams] = await Promise.all([
-    fetchRegions(),
-    fetchRegionsByLetter(),
-    searchParams,
-  ]);
+  const [regions, regionsByLetter, resolvedParams]: [
+    Region[],
+    Record<string, Omit<Region, 'id'>[]>,
+    any
+  ] = await Promise.all([fetchRegions(), fetchRegionsByLetter(), searchParams]);
 
   // Get current letter from URL or default to first available letter with regions
   const defaultLetter = ALL_LETTERS[0] || 'A';

@@ -4,9 +4,11 @@
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import {
-  fetchRegions,
-  fetchWorkoutLocationsByRegion,
-} from '@/utils/fetchWorkoutLocations';
+  fetchAllRegions as fetchRegions,
+  fetchWorkoutsByRegionSlug as fetchWorkoutLocationsByRegion,
+} from '@/utils/f3WarehouseAdapters';
+import type { Region, WorkoutWithRegion } from '@/utils/f3WarehouseAdapters';
+// NOTE: Data now comes from the f3DataWarehouse schema via f3WarehouseAdapters utilities.
 import { sortWorkoutsByDayAndTime } from '@/utils/workoutSorting';
 import { calculateMapParameters } from '@/utils/mapUtils';
 import { RegionContent } from '@/components/RegionContent';

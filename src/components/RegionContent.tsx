@@ -7,7 +7,8 @@ import { WorkoutList } from '@/components/WorkoutList';
 import { WorkoutFilters } from '@/components/WorkoutFilters';
 import { getMapUrl } from '@/utils/mapUtils';
 import type { MapParameters } from '@/utils/mapUtils';
-import { WorkoutWithRegion } from '@/types/Workout';
+import type { WorkoutWithRegion } from '@/utils/f3WarehouseAdapters';
+// NOTE: WorkoutWithRegion type now comes from f3DataWarehouse schema via f3WarehouseAdapters utilities.
 
 interface RegionContentProps {
   regionName: string;
