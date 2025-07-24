@@ -17,6 +17,7 @@ export interface Region {
   slug: string | null;
   name: string;
   website?: string | null;
+  image?: string | null;
   city?: string | null;
   state?: string | null;
   zip?: string | null;

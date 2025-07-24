@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Suspense, useState } from 'react';
 import { RegionHeader } from '@/components/RegionHeader';
 import { WorkoutList } from '@/components/WorkoutList';
@@ -12,6 +13,7 @@ import { WorkoutWithRegion } from '@/types/Workout';
 interface RegionContentProps {
   regionName: string;
   website?: string;
+  image?: string;
   sortedWorkouts: WorkoutWithRegion[];
   mapParams: MapParameters;
 }
@@ -48,6 +50,7 @@ function FilteredContent({
 export function RegionContent({
   regionName,
   website,
+  image,
   sortedWorkouts,
   mapParams,
 }: RegionContentProps) {
@@ -78,7 +81,18 @@ export function RegionContent({
       </div>
 
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">F3 {regionName}</h1>
+        <h1 className="text-4xl font-bold mb-2">
+          {image && (
+            <Image
+              src={image}
+              alt={regionName}
+              width={150}
+              height={150}
+              className="w-150 h-150 mb-4 rounded-full mr-2"
+            />
+          )}
+          F3 {regionName}
+        </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
           Free, peer-led workouts for men. Open to all men, held outdoors, rain
           or shine, hot or cold.

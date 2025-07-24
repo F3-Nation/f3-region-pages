@@ -27,7 +27,15 @@ async function seedRegions() {
   let i = 1;
   for await (const region of regions) {
     console.debug(`inserting region ${i}: ${region.name}`);
-    await db.insert(regionsSchema).values(region).onConflictDoNothing();
+    const { city, state, zip, country, latitude, longitude, zoom, ...rest } =
+      region;
+    await db
+      .insert(regionsSchema)
+      .values(region)
+      .onConflictDoUpdate({
+        target: [regionsSchema.id],
+        set: rest,
+      });
     i++;
   }
   console.debug('✅ done inserting regions');
@@ -36,27 +44,15 @@ async function seedRegions() {
 type Region = typeof regionsSchema.$inferInsert;
 
 async function* fetchRegions(): AsyncGenerator<Region> {
-  const previouslyIngestedRegions = await db
-    .select({ id: regionsSchema.id })
-    .from(regionsSchema)
-    .orderBy(asc(regionsSchema.id));
   const regions = await f3DataWarehouseDb
     .select({
       id: orgsSchema.id,
       name: orgsSchema.name,
       website: orgsSchema.website,
+      logoUrl: orgsSchema.logoUrl,
     })
     .from(orgsSchema)
-    .where(
-      and(
-        eq(orgsSchema.orgType, 'region'),
-        eq(orgsSchema.isActive, true),
-        notInArray(
-          orgsSchema.id,
-          previouslyIngestedRegions.map((r) => parseInt(r.id))
-        )
-      )
-    )
+    .where(and(eq(orgsSchema.orgType, 'region'), eq(orgsSchema.isActive, true)))
     .orderBy(asc(orgsSchema.name));
 
   for await (const region of regions) {
@@ -65,6 +61,7 @@ async function* fetchRegions(): AsyncGenerator<Region> {
       name: region.name,
       slug: toKebabCase(region.name),
       website: region.website,
+      image: region.logoUrl,
       city: 'city',
       state: 'state',
       zip: 'zip',
@@ -226,8 +223,6 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
       time: `${workout.startTime} - ${workout.endTime}`,
       type: workoutType.name,
       group: workout.group,
-      /** @todo remove */
-      image: '',
       notes: workout.notes,
       latitude: location.latitude,
       longitude: location.longitude,

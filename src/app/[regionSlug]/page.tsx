@@ -66,6 +66,7 @@ export default async function RegionPage({
 
   const regionName = regionData[0].region.name;
   const website = regionData[0].region.website || undefined;
+  const image = regionData[0].region.image || undefined;
   const mapParams = calculateMapParameters(
     regionData.map((workout) => ({
       latitude: workout.latitude,
@@ -78,6 +79,7 @@ export default async function RegionPage({
     <RegionContent
       regionName={regionName}
       website={website}
+      image={image}
       sortedWorkouts={sortWorkoutsByDayAndTime(regionData)}
       mapParams={mapParams}
     />
