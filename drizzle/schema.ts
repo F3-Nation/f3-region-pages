@@ -10,6 +10,7 @@ export const regions = pgTable('regions', {
   slug: varchar().unique(),
   name: varchar().notNull().unique(),
   website: varchar(),
+  image: varchar(),
   city: varchar(),
   state: varchar(),
   zip: varchar(),
@@ -26,8 +27,6 @@ export const workouts = pgTable('workouts', {
   time: varchar().notNull(),
   type: varchar().notNull(),
   group: varchar().notNull(),
-  /** @todo remove */
-  image: varchar(),
   notes: varchar(),
   latitude: doublePrecision(),
   longitude: doublePrecision(),
