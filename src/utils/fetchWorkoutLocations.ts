@@ -1,3 +1,5 @@
+/** @todo refactor lazy `as Region` type coercion */
+
 import { unstable_cache } from 'next/cache';
 import { Region, WorkoutWithRegion } from '@/types/Workout';
 import { db } from '../../drizzle/db';
@@ -48,7 +50,7 @@ const normalizeTimeRange = (timeRange: string): string => {
   return times.map(convertTo12Hour).join(' - ');
 };
 
-function normalizeRegionFields(region: any): Region {
+function normalizeRegionFields(region: Region): Region {
   return {
     id: String(region.id),
     name: region.name ? String(region.name) : '',
@@ -237,14 +239,14 @@ export const fetchRegionBySlug = async (
     .where(eq(regions.slug, regionSlug))
     .limit(1);
   if (!regionData[0]) return null;
-  return normalizeRegionFields(regionData[0]) as Region;
+  return normalizeRegionFields(regionData[0] as Region) as Region;
 };
 
 export const fetchRegionsWithWorkoutCounts = async (): Promise<
   (Region & { workoutCount: number })[]
 > => {
   // Query regions with LEFT JOIN to get workout counts
-  const results = await db
+  const results = (await db
     .select({
       id: regions.id,
       name: regions.name,
@@ -262,7 +264,7 @@ export const fetchRegionsWithWorkoutCounts = async (): Promise<
     .from(regions)
     .leftJoin(workouts, eq(regions.id, workouts.regionId))
     .groupBy(regions.id)
-    .orderBy(regions.name);
+    .orderBy(regions.name)) as Region[];
   return results.map(normalizeRegionFields) as (Region & {
     workoutCount: number;
   })[];

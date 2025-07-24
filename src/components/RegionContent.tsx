@@ -55,8 +55,6 @@ interface OrphanedRegionContentProps {
 }
 
 export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
-  // Build region slug for map link
-  const regionSlug = region.slug;
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* Back to Regions link */}
