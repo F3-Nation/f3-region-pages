@@ -6,10 +6,11 @@ import { Metadata } from 'next';
 import {
   fetchRegions,
   fetchWorkoutLocationsByRegion,
+  fetchRegionBySlug,
 } from '@/utils/fetchWorkoutLocations';
 import { sortWorkoutsByDayAndTime } from '@/utils/workoutSorting';
 import { calculateMapParameters } from '@/utils/mapUtils';
-import { RegionContent } from '@/components/RegionContent';
+import { RegionContent, OrphanedRegionContent } from '@/components/RegionContent';
 
 interface RegionProps {
   params: Promise<{
@@ -30,16 +31,23 @@ export async function generateMetadata({
   params: Promise<{ regionSlug: string }>;
 }): Promise<Metadata> {
   const { regionSlug } = await params;
-  const regionData = await fetchWorkoutLocationsByRegion(regionSlug);
-
-  if (!regionData?.length) {
+  const region = await fetchRegionBySlug(regionSlug);
+  if (!region) {
     return {
       title: 'Region Not Found',
       description: 'The requested F3 region could not be found.',
     };
   }
-
-  const regionName = regionData[0].region.name;
+  const regionData = await fetchWorkoutLocationsByRegion(regionSlug);
+  const hasWorkouts =
+    regionData.length > 0 && regionData[0].id !== 'no-workouts';
+  if (!hasWorkouts) {
+    return {
+      title: `F3 ${region.name} - Coming Soon`,
+      description: `F3 ${region.name} is a registered region. Check back for upcoming workout schedules or visit our website to get involved.`,
+    };
+  }
+  const regionName = region.name;
   const locations = regionData
     .map((workout) => workout.location)
     .filter(Boolean);
@@ -47,7 +55,6 @@ export async function generateMetadata({
   const locationString =
     uniqueLocations.slice(0, 3).join(', ') +
     (uniqueLocations.length > 3 ? ', and more' : '');
-
   return {
     title: `F3 ${regionName} Workouts`,
     description: `Find F3 workouts in ${regionName}, serving ${locationString}. Join us for free, peer-led workouts in your area.`,
@@ -58,10 +65,14 @@ export default async function RegionPage({
   params,
 }: Pick<RegionProps, 'params'>) {
   const { regionSlug } = await params;
+  const region = await fetchRegionBySlug(regionSlug);
+  if (!region) {
+    notFound();
+  }
   const regionData = await fetchWorkoutLocationsByRegion(regionSlug);
 
-  if (!regionData?.length) {
-    notFound();
+  if (regionData[0].id === 'no-workouts') {
+    return <OrphanedRegionContent region={region} />;
   }
 
   const regionName = regionData[0].region.name;
