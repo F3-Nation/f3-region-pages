@@ -86,9 +86,9 @@ export function RegionContent({
             <Image
               src={image}
               alt={regionName}
-              width={100}
-              height={100}
-              className="w-10 h-10 rounded-full"
+              width={150}
+              height={150}
+              className="w-150 h-150 mb-4 rounded-full mr-2"
             />
           )}
           F3 {regionName}
