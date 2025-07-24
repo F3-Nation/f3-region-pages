@@ -527,20 +527,6 @@ export default function SearchableRegionList({
                       )}
                     </div>
                   )}
-                  {/* Workout count display */}
-                  {typeof region.workoutCount === 'number' &&
-                    region.workoutCount === 0 && (
-                      <div className="text-sm text-yellow-600 mt-1">
-                        ⚠️ No active workouts
-                      </div>
-                    )}
-                  {typeof region.workoutCount === 'number' &&
-                    region.workoutCount > 0 && (
-                      <div className="text-sm text-green-600 mt-1">
-                        ✅ {region.workoutCount} workout
-                        {region.workoutCount !== 1 ? 's' : ''}
-                      </div>
-                    )}
                   {/* Show distance in GPS mode */}
                   {isGpsMode && 'distance' in region && (
                     <div className="text-sm text-blue-600 dark:text-blue-400 mt-1">
