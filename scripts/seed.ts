@@ -1,6 +1,6 @@
-import { eq, asc, and, notInArray } from 'drizzle-orm';
+import { eq, asc, and } from 'drizzle-orm';
 
-import { toKebabCase } from '../src/utils/toKebabCase';
+import { kebabCase } from 'lodash';
 import { db } from '../drizzle/db';
 import {
   regions as regionsSchema,
@@ -59,7 +59,7 @@ async function* fetchRegions(): AsyncGenerator<Region> {
     yield {
       id: region.id.toString(),
       name: region.name,
-      slug: toKebabCase(region.name),
+      slug: kebabCase(region.name),
       website: region.website,
       image: region.logoUrl,
       city: 'city',
