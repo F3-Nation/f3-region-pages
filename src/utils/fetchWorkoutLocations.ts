@@ -1,9 +1,11 @@
+/** @todo refactor lazy `as Region` type coercion */
+
 import { unstable_cache } from 'next/cache';
 import { Region, WorkoutWithRegion } from '@/types/Workout';
 import { db } from '../../drizzle/db';
 import { regions, workouts } from '../../drizzle/schema';
 import { ALL_LETTERS, cacheTtl } from '@/lib/const';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 // Convert time to 12-hour format, handling various input formats
 const convertTo12Hour = (time: string): string => {
@@ -48,10 +50,36 @@ const normalizeTimeRange = (timeRange: string): string => {
   return times.map(convertTo12Hour).join(' - ');
 };
 
+function normalizeRegionFields(region: Region): Region {
+  return {
+    id: String(region.id),
+    name: region.name ? String(region.name) : '',
+    slug: region.slug ? String(region.slug) : '',
+    website: region.website ? String(region.website) : undefined,
+    image: region.image ? String(region.image) : undefined,
+    city: region.city ? String(region.city) : undefined,
+    state: region.state ? String(region.state) : undefined,
+    zip: region.zip ? String(region.zip) : undefined,
+    country: region.country ? String(region.country) : undefined,
+    latitude:
+      region.latitude !== null && region.latitude !== undefined
+        ? Number(region.latitude)
+        : undefined,
+    longitude:
+      region.longitude !== null && region.longitude !== undefined
+        ? Number(region.longitude)
+        : undefined,
+    zoom:
+      region.zoom !== null && region.zoom !== undefined
+        ? Number(region.zoom)
+        : undefined,
+  };
+}
+
 const getCachedRegions = unstable_cache(
   async (): Promise<Region[]> => {
     try {
-      return await db
+      return (await db
         .select({
           id: regions.id,
           name: regions.name,
@@ -66,7 +94,7 @@ const getCachedRegions = unstable_cache(
           zoom: regions.zoom,
         })
         .from(regions)
-        .orderBy(regions.name);
+        .orderBy(regions.name)) as Region[];
     } catch (error) {
       console.error('Error fetching regions:', error);
       return [];
@@ -124,7 +152,24 @@ const getCachedRegionWorkouts = unstable_cache(
 
       if (!regionWorkouts || regionWorkouts.length === 0) {
         console.warn(`No workouts found for region slug: ${regionSlug}`);
-        return [];
+        return [
+          {
+            id: 'no-workouts',
+            regionId: region.id,
+            name: 'No workouts available',
+            time: '',
+            type: '',
+            group: '',
+            notes: undefined,
+            latitude: region.latitude ?? undefined,
+            longitude: region.longitude ?? undefined,
+            location: `${region.city ?? ''}, ${region.state ?? ''}`.replace(
+              /^, |, $/,
+              ''
+            ),
+            region: region as Region,
+          },
+        ];
       }
 
       return regionWorkouts.map((workout) => {
@@ -147,20 +192,22 @@ const getCachedRegionWorkouts = unstable_cache(
 );
 
 export const fetchRegions = async (): Promise<Region[]> => {
-  return getCachedRegions();
+  const regionsRaw = await getCachedRegions();
+  return regionsRaw.map(normalizeRegionFields) as Region[];
 };
 
 export const fetchRegionsByLetter = async (): Promise<
   Record<string, Omit<Region, 'id'>[]>
 > => {
-  const regions = await getCachedRegions();
+  const regionsRaw = await getCachedRegions();
   return ALL_LETTERS.reduce((acc, letter) => {
     const filteredRegions =
-      regions
+      (regionsRaw
         .filter((region) =>
-          region.name.toLowerCase().startsWith(letter.toLowerCase())
+          (region.name || '').toLowerCase().startsWith(letter.toLowerCase())
         )
-        .sort((a, b) => a.name.localeCompare(b.name)) || [];
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+        .map(normalizeRegionFields) as Omit<Region, 'id'>[]) || [];
     acc[letter] = filteredRegions;
     return acc;
   }, {} as Record<string, Omit<Region, 'id'>[]>);
@@ -169,3 +216,56 @@ export const fetchRegionsByLetter = async (): Promise<
 export const fetchWorkoutLocationsByRegion = async (
   regionSlug: string
 ): Promise<WorkoutWithRegion[]> => await getCachedRegionWorkouts(regionSlug);
+
+export const fetchRegionBySlug = async (
+  regionSlug: string
+): Promise<Region | null> => {
+  const regionData = await db
+    .select({
+      id: regions.id,
+      name: regions.name,
+      slug: regions.slug,
+      website: regions.website,
+      image: regions.image,
+      city: regions.city,
+      state: regions.state,
+      zip: regions.zip,
+      country: regions.country,
+      latitude: regions.latitude,
+      longitude: regions.longitude,
+      zoom: regions.zoom,
+    })
+    .from(regions)
+    .where(eq(regions.slug, regionSlug))
+    .limit(1);
+  if (!regionData[0]) return null;
+  return normalizeRegionFields(regionData[0] as Region) as Region;
+};
+
+export const fetchRegionsWithWorkoutCounts = async (): Promise<
+  (Region & { workoutCount: number })[]
+> => {
+  // Query regions with LEFT JOIN to get workout counts
+  const results = (await db
+    .select({
+      id: regions.id,
+      name: regions.name,
+      slug: regions.slug,
+      website: regions.website,
+      city: regions.city,
+      state: regions.state,
+      zip: regions.zip,
+      country: regions.country,
+      latitude: regions.latitude,
+      longitude: regions.longitude,
+      zoom: regions.zoom,
+      workoutCount: sql<number>`count(${workouts.id})::int`,
+    })
+    .from(regions)
+    .leftJoin(workouts, eq(regions.id, workouts.regionId))
+    .groupBy(regions.id)
+    .orderBy(regions.name)) as Region[];
+  return results.map(normalizeRegionFields) as (Region & {
+    workoutCount: number;
+  })[];
+};

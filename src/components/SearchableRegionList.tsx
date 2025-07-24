@@ -15,9 +15,12 @@ import { Region } from '@/types/Workout';
 import { calculateHaversineDistance } from '@/utils/mapUtils';
 
 interface Props {
-  regions: Omit<Region, 'id'>[];
+  regions: (Omit<Region, 'id'> & { workoutCount: number })[];
   currentLetter: string;
-  regionsByLetter: Record<string, Omit<Region, 'id'>[]>;
+  regionsByLetter: Record<
+    string,
+    (Omit<Region, 'id'> & { workoutCount: number })[]
+  >;
 }
 
 interface UserLocation {

@@ -1,6 +1,7 @@
 import {
-  fetchRegions,
-  fetchRegionsByLetter,
+  fetchRegionsWithWorkoutCounts,
+  // fetchRegions,
+  // fetchRegionsByLetter,
 } from '@/utils/fetchWorkoutLocations';
 import { RegionsClient } from '@/components/RegionsClient';
 import { Metadata } from 'next';
@@ -18,8 +19,17 @@ interface RegionsPageProps {
 
 export default async function HomePage({ searchParams }: RegionsPageProps) {
   const [regions, regionsByLetter, resolvedParams] = await Promise.all([
-    fetchRegions(),
-    fetchRegionsByLetter(),
+    fetchRegionsWithWorkoutCounts(),
+    (async () => {
+      const all = await fetchRegionsWithWorkoutCounts();
+      // Group by first letter
+      return ALL_LETTERS.reduce((acc, letter) => {
+        acc[letter] = all.filter((r) =>
+          (r.name || '').toUpperCase().startsWith(letter)
+        );
+        return acc;
+      }, {} as Record<string, typeof all>);
+    })(),
     searchParams,
   ]);
 

@@ -14,17 +14,17 @@ export interface Workout {
 
 export interface Region {
   id: string;
-  slug: string | null;
+  slug: string;
   name: string;
-  website?: string | null;
-  image?: string | null;
-  city?: string | null;
-  state?: string | null;
-  zip?: string | null;
-  country?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  zoom?: number | null;
+  website?: string;
+  image?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+  zoom?: number;
 }
 
 export interface WorkoutWithRegion extends Workout {
