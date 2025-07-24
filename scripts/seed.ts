@@ -27,12 +27,14 @@ async function seedRegions() {
   let i = 1;
   for await (const region of regions) {
     console.debug(`inserting region ${i}: ${region.name}`);
+    const { city, state, zip, country, latitude, longitude, zoom, ...rest } =
+      region;
     await db
       .insert(regionsSchema)
       .values(region)
       .onConflictDoUpdate({
         target: [regionsSchema.id],
-        set: region,
+        set: rest,
       });
     i++;
   }
