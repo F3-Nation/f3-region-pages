@@ -45,6 +45,7 @@ async function* fetchRegions(): AsyncGenerator<Region> {
       id: orgsSchema.id,
       name: orgsSchema.name,
       website: orgsSchema.website,
+      logoUrl: orgsSchema.logoUrl,
     })
     .from(orgsSchema)
     .where(
@@ -65,6 +66,7 @@ async function* fetchRegions(): AsyncGenerator<Region> {
       name: region.name,
       slug: toKebabCase(region.name),
       website: region.website,
+      image: region.logoUrl,
       city: 'city',
       state: 'state',
       zip: 'zip',
@@ -226,8 +228,6 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
       time: `${workout.startTime} - ${workout.endTime}`,
       type: workoutType.name,
       group: workout.group,
-      /** @todo remove */
-      image: '',
       notes: workout.notes,
       latitude: location.latitude,
       longitude: location.longitude,
