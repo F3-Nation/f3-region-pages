@@ -124,7 +124,7 @@ export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
           Add AOs on the F3 Nation Map Admin
         </a>
         <div className="text-yellow-700 dark:text-yellow-300 text-sm mt-2">
-          Allow ~15&nbsp;minutes for new locations to appear here.
+          Allow 24-48 hours for new locations to appear here.
         </div>
       </div>
 
