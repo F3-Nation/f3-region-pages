@@ -200,15 +200,13 @@ export function RegionContent({
 
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2">
-          {image && (
-            <Image
-              src={image}
-              alt={regionName}
-              width={150}
-              height={150}
-              className="w-150 h-150 mb-4 rounded-full mr-2"
-            />
-          )}
+          <Image
+            src={image || '/f3.svg'}
+            alt={regionName}
+            width={150}
+            height={150}
+            className="w-150 h-150 mb-4 mr-2"
+          />
           F3 {regionName}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
