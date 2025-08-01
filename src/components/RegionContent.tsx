@@ -116,15 +116,15 @@ export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
           grow by adding new workout locations (AOs).
         </div>
         <a
-          href="https://map.f3nation.com/admin/aos"
+          href="https://docs.google.com/document/d/1ssUnIRTfteZH8GcV8K8x0c1q-cGfCu72CdhTIXSJnWI/edit?tab=t.0#heading=h.39rghinjgybm"
           className="inline-block px-5 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-colors text-base shadow-md"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Add AOs on the F3 Nation Map Admin
+          Get Access to Add AOs
         </a>
         <div className="text-yellow-700 dark:text-yellow-300 text-sm mt-2">
-          Allow 24-48 hours for new locations to appear here.
+          Follow the Getting Access guide to add new workout locations.
         </div>
       </div>
 
