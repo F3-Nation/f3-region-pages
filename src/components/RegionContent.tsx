@@ -28,7 +28,7 @@ function FilteredContent({
 
   return (
     <>
-      <div className="sticky top-4 z-10 bg-white dark:bg-gray-800/95 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg mb-8 border border-gray-100 dark:border-gray-700/50">
+      <div className="sticky top-4 z-20 bg-white dark:bg-gray-800/95 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg mb-8 border border-gray-100 dark:border-gray-700/50">
         <Suspense fallback={<div>Loading filters...</div>}>
           <WorkoutFilters
             workouts={sortedWorkouts}
