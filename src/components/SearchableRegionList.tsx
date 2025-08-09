@@ -11,7 +11,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ALL_LETTERS } from '@/lib/const';
-import { Region } from '@/types/Workout';
+import { Region } from '@/types/Region';
 import { calculateHaversineDistance } from '@/utils/mapUtils';
 
 interface Props {

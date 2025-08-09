@@ -9,6 +9,7 @@ export const regions = pgTable('regions', {
   id: varchar().primaryKey(),
   slug: varchar().unique(),
   name: varchar().notNull().unique(),
+  description: varchar(),
   website: varchar(),
   image: varchar(),
   city: varchar(),

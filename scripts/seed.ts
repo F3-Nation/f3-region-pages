@@ -48,6 +48,7 @@ async function* fetchRegions(): AsyncGenerator<Region> {
     .select({
       id: orgsSchema.id,
       name: orgsSchema.name,
+      description: orgsSchema.description,
       website: orgsSchema.website,
       logoUrl: orgsSchema.logoUrl,
     })
@@ -59,6 +60,7 @@ async function* fetchRegions(): AsyncGenerator<Region> {
     yield {
       id: region.id.toString(),
       name: region.name,
+      description: region.description,
       slug: kebabCase(region.name),
       website: region.website,
       image: region.logoUrl,

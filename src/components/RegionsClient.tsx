@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import SearchableRegionList from './SearchableRegionList';
-import type { Region } from '@/types/Workout';
+import type { Region } from '@/types/Region';
 
 interface RegionsClientProps {
   regions: (Omit<Region, 'id'> & { workoutCount: number })[];
