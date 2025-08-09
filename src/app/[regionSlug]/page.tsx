@@ -10,7 +10,10 @@ import {
 } from '@/utils/fetchWorkoutLocations';
 import { sortWorkoutsByDayAndTime } from '@/utils/workoutSorting';
 import { calculateMapParameters } from '@/utils/mapUtils';
-import { RegionContent, OrphanedRegionContent } from '@/components/RegionContent';
+import {
+  RegionContent,
+  OrphanedRegionContent,
+} from '@/components/RegionContent';
 
 interface RegionProps {
   params: Promise<{
@@ -89,6 +92,7 @@ export default async function RegionPage({
   return (
     <RegionContent
       regionName={regionName}
+      regionDescription={region.description}
       website={website}
       image={image}
       sortedWorkouts={sortWorkoutsByDayAndTime(regionData)}

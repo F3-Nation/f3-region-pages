@@ -12,6 +12,7 @@ import { WorkoutWithRegion } from '@/types/Workout';
 
 interface RegionContentProps {
   regionName: string;
+  regionDescription?: string;
   website?: string;
   image?: string;
   sortedWorkouts: WorkoutWithRegion[];
@@ -54,6 +55,9 @@ interface OrphanedRegionContentProps {
   region: Region;
 }
 
+const defaultRegionDescription =
+  'Free, peer-led workouts for men. Open to all men, held outdoors, rain or shine, hot or cold.';
+
 export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -86,8 +90,7 @@ export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
           F3 {region.name}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          Free, peer-led workouts for men. Open to all men, held outdoors, rain
-          or shine, hot or cold.
+          {region.description ? region.description : defaultRegionDescription}
         </p>
       </div>
 
@@ -167,6 +170,7 @@ export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
 
 export function RegionContent({
   regionName,
+  regionDescription,
   website,
   image,
   sortedWorkouts,
@@ -210,8 +214,7 @@ export function RegionContent({
           F3 {regionName}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          Free, peer-led workouts for men. Open to all men, held outdoors, rain
-          or shine, hot or cold.
+          {regionDescription ? regionDescription : defaultRegionDescription}
         </p>
       </div>
 

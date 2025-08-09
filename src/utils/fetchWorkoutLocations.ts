@@ -1,7 +1,8 @@
 /** @todo refactor lazy `as Region` type coercion */
 
 import { unstable_cache } from 'next/cache';
-import { Region, WorkoutWithRegion } from '@/types/Workout';
+import { WorkoutWithRegion } from '@/types/Workout';
+import { Region } from '@/types/Region';
 import { db } from '../../drizzle/db';
 import { regions, workouts } from '../../drizzle/schema';
 import { ALL_LETTERS, cacheTtl } from '@/lib/const';
@@ -54,6 +55,7 @@ function normalizeRegionFields(region: Region): Region {
   return {
     id: String(region.id),
     name: region.name ? String(region.name) : '',
+    description: region.description ? String(region.description) : '',
     slug: region.slug ? String(region.slug) : '',
     website: region.website ? String(region.website) : undefined,
     image: region.image ? String(region.image) : undefined,
@@ -83,6 +85,7 @@ const getCachedRegions = unstable_cache(
         .select({
           id: regions.id,
           name: regions.name,
+          description: regions.description,
           slug: regions.slug,
           website: regions.website,
           city: regions.city,
@@ -112,6 +115,7 @@ const getCachedRegionWorkouts = unstable_cache(
         .select({
           id: regions.id,
           name: regions.name,
+          description: regions.description,
           slug: regions.slug,
           website: regions.website,
           image: regions.image,
@@ -224,6 +228,7 @@ export const fetchRegionBySlug = async (
     .select({
       id: regions.id,
       name: regions.name,
+      description: regions.description,
       slug: regions.slug,
       website: regions.website,
       image: regions.image,
@@ -250,6 +255,7 @@ export const fetchRegionsWithWorkoutCounts = async (): Promise<
     .select({
       id: regions.id,
       name: regions.name,
+      description: regions.description,
       slug: regions.slug,
       website: regions.website,
       city: regions.city,
