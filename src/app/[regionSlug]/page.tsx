@@ -50,17 +50,9 @@ export async function generateMetadata({
       description: `F3 ${region.name} is a registered region. Check back for upcoming workout schedules or visit our website to get involved.`,
     };
   }
-  const regionName = region.name;
-  const locations = regionData
-    .map((workout) => workout.location)
-    .filter(Boolean);
-  const uniqueLocations = [...new Set(locations)];
-  const locationString =
-    uniqueLocations.slice(0, 3).join(', ') +
-    (uniqueLocations.length > 3 ? ', and more' : '');
   return {
-    title: `F3 ${regionName} Workouts`,
-    description: `Find F3 workouts in ${regionName}, serving ${locationString}. Join us for free, peer-led workouts in your area.`,
+    title: `F3 ${region.name} Workouts (${region.city}, ${region.state})`,
+    description: `Find F3 workouts in ${region.city}, ${region.state}. Join us for free, peer-led workout groups for the invigoration of male community leadership.`,
   };
 }
 
@@ -80,6 +72,10 @@ export default async function RegionPage({
 
   const regionName = regionData[0].region.name;
   const website = regionData[0].region.website || undefined;
+  const email = regionData[0].region.email || undefined;
+  const facebook = regionData[0].region.facebook || undefined;
+  const twitter = regionData[0].region.twitter || undefined;
+  const instagram = regionData[0].region.instagram || undefined;
   const image = regionData[0].region.image || undefined;
   const mapParams = calculateMapParameters(
     regionData.map((workout) => ({
@@ -94,6 +90,10 @@ export default async function RegionPage({
       regionName={regionName}
       regionDescription={region.description}
       website={website}
+      email={email}
+      facebook={facebook}
+      twitter={twitter}
+      instagram={instagram}
       image={image}
       sortedWorkouts={sortWorkoutsByDayAndTime(regionData)}
       mapParams={mapParams}
