@@ -19,6 +19,10 @@ export const regions = pgTable('regions', {
   latitude: doublePrecision(),
   longitude: doublePrecision(),
   zoom: integer(),
+  email: varchar(),
+  facebook: varchar(),
+  twitter: varchar(),
+  instagram: varchar(),
 });
 
 export const workouts = pgTable('workouts', {
