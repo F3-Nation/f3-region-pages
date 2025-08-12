@@ -21,6 +21,10 @@ interface RegionContentProps {
   regionName: string;
   regionDescription?: string;
   website?: string;
+  email?: string;
+  facebook?: string;
+  twitter?: string;
+  instagram?: string;
   image?: string;
   sortedWorkouts: WorkoutWithRegion[];
   mapParams: MapParameters;
@@ -181,6 +185,10 @@ export function RegionContent({
   regionName,
   regionDescription,
   website,
+  email,
+  facebook,
+  twitter,
+  instagram,
   image,
   sortedWorkouts,
   mapParams,
@@ -223,6 +231,7 @@ export function RegionContent({
             width={150}
             height={150}
             className="w-150 h-150 mb-4 mr-2"
+            priority={true}
           />
           F3 {regionName}
         </h1>
@@ -231,7 +240,14 @@ export function RegionContent({
         </p>
       </div>
 
-      <RegionHeader regionName={regionName} website={website} />
+      <RegionHeader
+        regionName={regionName}
+        website={website}
+        email={email}
+        facebook={facebook}
+        twitter={twitter}
+        instagram={instagram}
+      />
 
       {hasUpcomingEvents ? (
         <section className="mb-10">
