@@ -27,6 +27,7 @@ async function seedRegions() {
   let i = 1;
   for await (const region of regions) {
     console.debug(`inserting region ${i}: ${region.name}`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { city, state, zip, country, latitude, longitude, zoom, ...rest } =
       region;
     await db
@@ -51,6 +52,10 @@ async function* fetchRegions(): AsyncGenerator<Region> {
       description: orgsSchema.description,
       website: orgsSchema.website,
       logoUrl: orgsSchema.logoUrl,
+      email: orgsSchema.email,
+      facebook: orgsSchema.facebook,
+      twitter: orgsSchema.twitter,
+      instagram: orgsSchema.instagram,
     })
     .from(orgsSchema)
     .where(and(eq(orgsSchema.orgType, 'region'), eq(orgsSchema.isActive, true)))
@@ -64,6 +69,10 @@ async function* fetchRegions(): AsyncGenerator<Region> {
       slug: kebabCase(region.name),
       website: region.website,
       image: region.logoUrl,
+      email: region.email,
+      facebook: region.facebook,
+      twitter: region.twitter,
+      instagram: region.instagram,
       city: 'city',
       state: 'state',
       zip: 'zip',
