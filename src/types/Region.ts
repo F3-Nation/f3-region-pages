@@ -4,6 +4,10 @@ export type Region = {
   description?: string;
   slug: string;
   website?: string;
+  email?: string;
+  facebook?: string;
+  twitter?: string;
+  instagram?: string;
   image?: string;
   city?: string;
   state?: string;
