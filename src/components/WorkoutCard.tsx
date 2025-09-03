@@ -1,4 +1,5 @@
 import { WorkoutWithRegion } from '@/types/Workout';
+import { WorkoutNotes } from './WorkoutNotes';
 
 interface WorkoutCardProps {
   workout: WorkoutWithRegion;
@@ -131,12 +132,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
         )}
       </div>
 
-      {notes && (
-        <div className="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-line">
-          <div className="font-medium mb-1">Notes:</div>
-          {notes}
-        </div>
-      )}
+      <WorkoutNotes notes={notes} />
     </div>
   );
 }
