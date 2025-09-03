@@ -8,6 +8,16 @@ import { regions, workouts } from '../../drizzle/schema';
 import { ALL_LETTERS, cacheTtl } from '@/lib/const';
 import { eq, sql } from 'drizzle-orm';
 
+// Generate a build-aware cache key to prevent cross-deployment cache pollution
+const getBuildAwareCacheKey = (baseKey: string): string => {
+  // Use build ID from Next.js or fallback to a timestamp-based approach
+  const buildId =
+    process.env.NEXT_BUILD_ID ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    Date.now().toString();
+  return `${baseKey}-${buildId}`;
+};
+
 // Convert time to 12-hour format, handling various input formats
 const convertTo12Hour = (time: string): string => {
   // Remove any existing AM/PM and extra spaces
@@ -103,7 +113,7 @@ const getCachedRegions = unstable_cache(
       return [];
     }
   },
-  ['regions'],
+  [getBuildAwareCacheKey('regions')],
   { revalidate: cacheTtl, tags: ['regions'] }
 );
 
@@ -191,7 +201,7 @@ const getCachedRegionWorkouts = unstable_cache(
       return [];
     }
   },
-  ['region-workouts'],
+  [getBuildAwareCacheKey('region-workouts')],
   { revalidate: cacheTtl, tags: ['region-workouts'] }
 );
 
