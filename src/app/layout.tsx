@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { SITE_CONFIG } from '@/constants';
 import { ChunkErrorRecovery } from '@/components/ChunkErrorRecovery';
+import Script from 'next/script';
 import './globals.css';
 
 const geistSans = Geist({
@@ -53,6 +54,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
       >
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-44DEXNRMCP"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-44DEXNRMCP');
+          `}
+        </Script>
         <ChunkErrorRecovery />
         {children}
       </body>
