@@ -4,13 +4,14 @@
     "regionName": "F3 Muletown",
     "events": [
       {
-        "eventSlug": "fourth-anniversary-2025",
+        "id": "175482b5481d",
+        "slugSuffix": "four-years-strong",
+        "legacySlugs": ["four-years-strong"],
         "title": "F3 Muletown 4th Anniversary Convergence",
         "headline": "Celebrate four years of impact in Columbia, TN.",
         "date": "2025-11-25",
         "startTime": "06:00",
         "endTime": "07:00",
-        "timeZone": "America/Chicago",
         "type": "Bootcamp",
         "location": {
           "name": "Riverwalk Park Basketball Court",
@@ -18,45 +19,36 @@
           "url": "https://www.google.com/maps?q=35.6179879,-87.0305082",
           "notes": "Look for the basketball courts near the river. Plenty of parking on site."
         },
-        "summary": "Join the F3 Muletown brotherhood for a special 60-minute bootcamp to mark four years of workouts, fellowship, and faith in Columbia.",
+        "summary": "Same Saturday beatdown, extra celebration—join founding Nantan 2Buck for a 60-minute bootcamp with breakfast served afterward.",
         "highlights": [
-          "Bootcamp-style convergence featuring Qs from across the region.",
-          "Spotlight on four years of F3 Muletown's growth and impact.",
-          "Coffeeteria on site with local partners and opportunities to bring FNGs."
+          "Bootcamp-style convergence led by founding Nantan 2Buck.",
+          "Perfect invite opportunity for FNGs and guys you haven't seen in a while.",
+          "Hot breakfast and coffeeteria immediately after the beatdown."
         ],
         "schedule": [
           {
-            "label": "Welcome & Warm-Up",
+            "label": "Anniversary Beatdown with 2Buck",
             "time": "06:00"
           },
           {
-            "label": "Anniversary Beatdown",
-            "time": "06:15"
-          },
-          {
             "label": "COT & Anniversary Remarks",
-            "time": "07:15"
+            "time": "07:00"
           },
           {
-            "label": "Coffeeteria & Fellowship",
-            "time": "07:30"
+            "label": "Coffeeteria & Hot Breakfast",
+            "time": "07:15"
           }
         ],
         "contacts": [
           {
-            "name": "Conner \"Pee\" Contreras",
-            "role": "Event Q",
-            "slack": "@Pee"
-          },
-          {
-            "name": "Go-Pee",
-            "role": "Comms Q",
-            "slack": "@Go-Pee"
+            "name": "2Buck",
+            "role": "Founding Nantan & Event Q",
+            "slack": "@2Buck"
           }
         ],
         "cta": {
           "label": "RSVP in Slack",
-          "url": "https://f3nation.slack.com"
+          "url": "https://join.slack.com/t/f3muletown/shared_invite/zt-3h2yz6376-WRaCBdah41v6s6sRMUs_Ng"
         }
       }
     ]

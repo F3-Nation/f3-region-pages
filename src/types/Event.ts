@@ -24,13 +24,14 @@ export interface EventCallToAction {
 }
 
 export interface RegionEvent {
-  eventSlug: string;
+  id: string;
+  slugSuffix?: string;
+  legacySlugs?: string[];
   title: string;
   headline?: string;
   date: string;
   startTime?: string;
   endTime?: string;
-  timeZone?: string;
   type?: string;
   summary?: string;
   highlights?: string[];

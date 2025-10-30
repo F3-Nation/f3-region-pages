@@ -11,10 +11,9 @@ import type { MapParameters } from '@/utils/mapUtils';
 import { WorkoutWithRegion } from '@/types/Workout';
 import type { RegionEvent } from '@/types/Event';
 import {
+  buildEventSlug,
   formatEventDate,
   formatEventTimeRange,
-  getTimeZoneAbbreviation,
-  humanizeTimeZone,
 } from '@/utils/regionEvents';
 
 interface RegionContentProps {
@@ -247,25 +246,16 @@ export function RegionContent({
           <div className="space-y-4">
             {eventsToShow.map((event) => {
               const formattedDate = event.date
-                ? formatEventDate(event.date, event.timeZone)
-                : undefined;
-              const tzAbbreviation = event.date
-                ? getTimeZoneAbbreviation(
-                    event.date,
-                    event.timeZone,
-                    event.startTime
-                  )
+                ? formatEventDate(event.date)
                 : undefined;
               const timeRange = formatEventTimeRange(
                 event.startTime,
-                event.endTime,
-                tzAbbreviation
+                event.endTime
               );
-              const friendlyTimeZone = humanizeTimeZone(event.timeZone);
 
               return (
                 <article
-                  key={event.eventSlug}
+                  key={event.id}
                   className="border border-blue-200/70 dark:border-blue-800/60 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -282,7 +272,7 @@ export function RegionContent({
                   </div>
                   <h3 className="text-xl font-bold text-blue-900 dark:text-blue-50 mb-2">
                     <Link
-                      href={`/${regionSlug}/events/${event.eventSlug}`}
+                      href={`/${regionSlug}/events/${buildEventSlug(event)}`}
                       className="hover:underline"
                     >
                       {event.title}
@@ -297,14 +287,7 @@ export function RegionContent({
                     {timeRange ? (
                       <div>
                         <dt className="font-semibold">Time</dt>
-                        <dd>
-                          {timeRange}
-                          {friendlyTimeZone ? (
-                            <span className="text-xs text-blue-800/75 dark:text-blue-200/75 ml-2">
-                              {friendlyTimeZone}
-                            </span>
-                          ) : null}
-                        </dd>
+                        <dd>{timeRange}</dd>
                       </div>
                     ) : null}
                     {event.location?.name || event.location?.address ? (
@@ -342,7 +325,7 @@ export function RegionContent({
 
                   <div className="mt-5">
                     <Link
-                      href={`/${regionSlug}/events/${event.eventSlug}`}
+                      href={`/${regionSlug}/events/${buildEventSlug(event)}`}
                       className="inline-flex items-center px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
                     >
                       View event details

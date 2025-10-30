@@ -55,8 +55,7 @@ export async function generateMetadata({
       title: `F3 ${region.name} - Coming Soon`,
       description: nextEvent
         ? `F3 ${region.name} is a registered region. Next up: ${nextEvent.title} on ${formatEventDate(
-            nextEvent.date,
-            nextEvent.timeZone
+            nextEvent.date
           )}.`
         : `F3 ${region.name} is a registered region. Check back for upcoming workout schedules or visit our website to get involved.`,
     };
@@ -75,8 +74,7 @@ export async function generateMetadata({
     title: `F3 ${regionName} Workouts`,
     description: nextEvent
       ? `${workoutsDescription} Next up: ${nextEvent.title} on ${formatEventDate(
-          nextEvent.date,
-          nextEvent.timeZone
+          nextEvent.date
         )}.`
       : workoutsDescription,
   };

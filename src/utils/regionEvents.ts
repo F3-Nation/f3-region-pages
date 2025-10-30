@@ -1,3 +1,4 @@
+import kebabCase from 'lodash/kebabCase';
 import regionEventsData from '@/data/region-events.json';
 import type { RegionEventsEntry, RegionEvent } from '@/types/Event';
 
@@ -25,6 +26,32 @@ const toComparableDate = (event: RegionEvent): Date => {
   return result;
 };
 
+const extractEventIdFromSlug = (slug: string): string | null => {
+  if (!slug) {
+    return null;
+  }
+
+  const match = slug.match(/^[0-9a-fA-F]{6,64}/);
+  return match ? match[0].toLowerCase() : null;
+};
+
+const getEventSlugSuffix = (event: RegionEvent): string => {
+  if (event.slugSuffix && event.slugSuffix.trim().length > 0) {
+    return kebabCase(event.slugSuffix);
+  }
+
+  if (event.title && event.title.trim().length > 0) {
+    return kebabCase(event.title);
+  }
+
+  return '';
+};
+
+export const buildEventSlug = (event: RegionEvent): string => {
+  const suffix = getEventSlugSuffix(event);
+  return suffix ? `${event.id}-${suffix}` : event.id;
+};
+
 export const getAllRegionEvents = (): RegionEventsEntry[] => regionEvents;
 
 export const findRegionEventsEntry = (
@@ -41,9 +68,28 @@ export const findRegionEvent = (
     return null;
   }
 
-  const event = region.events.find((item) => item.eventSlug === eventSlug);
+  const candidateId = extractEventIdFromSlug(eventSlug);
+  if (candidateId) {
+    const directMatch = region.events.find(
+      (item) => item.id.toLowerCase() === candidateId
+    );
+    if (directMatch) {
+      return { region, event: directMatch };
+    }
+  }
 
-  return event ? { region, event } : null;
+  const fallbackMatch = region.events.find((item) => {
+    const explicitSlug = (item as unknown as { eventSlug?: string }).eventSlug;
+    if (explicitSlug && explicitSlug === eventSlug) {
+      return true;
+    }
+    if (item.legacySlugs?.includes(eventSlug)) {
+      return true;
+    }
+    return buildEventSlug(item) === eventSlug;
+  });
+
+  return fallbackMatch ? { region, event: fallbackMatch } : null;
 };
 
 export const getUpcomingRegionEvents = (
@@ -90,13 +136,26 @@ export const getAllEventStaticParams = (): {
   regionEvents.flatMap((region) =>
     region.events.map((event) => ({
       regionSlug: region.regionSlug,
-      eventSlug: event.eventSlug,
+      eventSlug: buildEventSlug(event),
     }))
   );
 
+export const hasEventEnded = (
+  event: RegionEvent,
+  referenceDate: Date = new Date()
+): boolean => {
+  if (!event.date) {
+    return false;
+  }
+
+  const eventDate = startOfDay(toComparableDate(event));
+  const comparisonDate = startOfDay(referenceDate);
+
+  return eventDate < comparisonDate;
+};
+
 export const formatEventDate = (
   date: string,
-  timeZone?: string,
   locale: string = 'en-US'
 ): string => {
   const formatter = new Intl.DateTimeFormat(locale, {
@@ -104,7 +163,6 @@ export const formatEventDate = (
     month: 'long',
     day: 'numeric',
     year: 'numeric',
-    timeZone: timeZone ?? 'UTC',
   });
 
   return formatter.format(new Date(`${date}T12:00:00Z`));
@@ -128,8 +186,7 @@ export const formatEventTime = (time?: string): string | undefined => {
 
 export const formatEventTimeRange = (
   startTime?: string,
-  endTime?: string,
-  tzAbbreviation?: string
+  endTime?: string
 ): string | undefined => {
   const formattedStart = formatEventTime(startTime);
   const formattedEnd = formatEventTime(endTime);
@@ -140,34 +197,5 @@ export const formatEventTimeRange = (
     ? `${formattedStart ?? ''} – ${formattedEnd}`
     : formattedStart ?? formattedEnd;
 
-  if (!baseRange) return undefined;
-
-  return tzAbbreviation ? `${baseRange} (${tzAbbreviation})` : baseRange;
+  return baseRange || undefined;
 };
-
-export const getTimeZoneAbbreviation = (
-  date: string,
-  timeZone?: string,
-  referenceTime?: string
-): string | undefined => {
-  if (!timeZone) return undefined;
-
-  try {
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      hour: 'numeric',
-      minute: 'numeric',
-      timeZoneName: 'short',
-    });
-    const parts = formatter.formatToParts(
-      new Date(`${date}T${referenceTime ?? '12:00'}:00Z`)
-    );
-    return parts.find((part) => part.type === 'timeZoneName')?.value;
-  } catch (error) {
-    console.warn(`Unable to determine time zone name for ${timeZone}`, error);
-    return undefined;
-  }
-};
-
-export const humanizeTimeZone = (timeZone?: string): string | undefined =>
-  timeZone?.replace(/_/g, ' ');

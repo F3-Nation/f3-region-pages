@@ -7,8 +7,7 @@ import {
   formatEventTime,
   formatEventTimeRange,
   getAllEventStaticParams,
-  getTimeZoneAbbreviation,
-  humanizeTimeZone,
+  hasEventEnded,
 } from '@/utils/regionEvents';
 
 interface EventPageParams {
@@ -16,7 +15,7 @@ interface EventPageParams {
   eventSlug: string;
 }
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 export const generateStaticParams = async () =>
   getAllEventStaticParams();
@@ -41,16 +40,10 @@ export async function generateMetadata({
     event,
   } = match;
 
-  const formattedDate = formatEventDate(event.date, event.timeZone);
-  const timeZoneAbbreviation = getTimeZoneAbbreviation(
-    event.date,
-    event.timeZone,
-    event.startTime
-  );
+  const formattedDate = formatEventDate(event.date);
   const timeRange = formatEventTimeRange(
     event.startTime,
-    event.endTime,
-    timeZoneAbbreviation
+    event.endTime
   );
 
   const summary =
@@ -102,18 +95,12 @@ export default async function EventPage({
       )
       .join(' ')}`;
 
-  const formattedDate = formatEventDate(event.date, event.timeZone);
-  const timeZoneAbbreviation = getTimeZoneAbbreviation(
-    event.date,
-    event.timeZone,
-    event.startTime
-  );
+  const formattedDate = formatEventDate(event.date);
   const timeRange = formatEventTimeRange(
     event.startTime,
-    event.endTime,
-    timeZoneAbbreviation
+    event.endTime
   );
-  const friendlyTimeZone = humanizeTimeZone(event.timeZone);
+  const eventHasEnded = hasEventEnded(event);
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -183,12 +170,6 @@ export default async function EventPage({
                   <div>
                     <dt className="font-semibold">Time</dt>
                     <dd>{timeRange}</dd>
-                  </div>
-                ) : null}
-                {friendlyTimeZone ? (
-                  <div>
-                    <dt className="font-semibold">Time Zone</dt>
-                    <dd>{friendlyTimeZone}</dd>
                   </div>
                 ) : null}
                 {event.location?.name || event.location?.address ? (
@@ -312,7 +293,7 @@ export default async function EventPage({
             </section>
           ) : null}
 
-          {event.cta ? (
+          {event.cta && !eventHasEnded ? (
             <div className="mt-10">
               <a
                 href={event.cta.url}
