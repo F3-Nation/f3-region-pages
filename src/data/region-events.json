@@ -1,0 +1,64 @@
+[
+  {
+    "regionSlug": "muletown",
+    "regionName": "F3 Muletown",
+    "events": [
+      {
+        "eventSlug": "fourth-anniversary-2025",
+        "title": "F3 Muletown 4th Anniversary Convergence",
+        "headline": "Celebrate four years of impact in Columbia, TN.",
+        "date": "2025-11-25",
+        "startTime": "06:00",
+        "endTime": "07:00",
+        "timeZone": "America/Chicago",
+        "type": "Bootcamp",
+        "location": {
+          "name": "Riverwalk Park Basketball Court",
+          "address": "102 Riverside Dr, Columbia, TN 38401, United States",
+          "url": "https://www.google.com/maps?q=35.6179879,-87.0305082",
+          "notes": "Look for the basketball courts near the river. Plenty of parking on site."
+        },
+        "summary": "Join the F3 Muletown brotherhood for a special 60-minute bootcamp to mark four years of workouts, fellowship, and faith in Columbia.",
+        "highlights": [
+          "Bootcamp-style convergence featuring Qs from across the region.",
+          "Spotlight on four years of F3 Muletown's growth and impact.",
+          "Coffeeteria on site with local partners and opportunities to bring FNGs."
+        ],
+        "schedule": [
+          {
+            "label": "Welcome & Warm-Up",
+            "time": "06:00"
+          },
+          {
+            "label": "Anniversary Beatdown",
+            "time": "06:15"
+          },
+          {
+            "label": "COT & Anniversary Remarks",
+            "time": "07:15"
+          },
+          {
+            "label": "Coffeeteria & Fellowship",
+            "time": "07:30"
+          }
+        ],
+        "contacts": [
+          {
+            "name": "Conner \"Pee\" Contreras",
+            "role": "Event Q",
+            "slack": "@Pee"
+          },
+          {
+            "name": "Go-Pee",
+            "role": "Comms Q",
+            "slack": "@Go-Pee"
+          }
+        ],
+        "cta": {
+          "label": "RSVP in Slack",
+          "url": "https://f3nation.slack.com"
+        }
+      }
+    ]
+  }
+]

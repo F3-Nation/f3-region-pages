@@ -14,6 +14,10 @@ import {
   RegionContent,
   OrphanedRegionContent,
 } from '@/components/RegionContent';
+import {
+  formatEventDate,
+  getUpcomingRegionEvents,
+} from '@/utils/regionEvents';
 
 interface RegionProps {
   params: Promise<{
@@ -41,15 +45,23 @@ export async function generateMetadata({
       description: 'The requested F3 region could not be found.',
     };
   }
+  const upcomingEvents = getUpcomingRegionEvents(regionSlug, { limit: 1 });
   const regionData = await fetchWorkoutLocationsByRegion(regionSlug);
   const hasWorkouts =
     regionData.length > 0 && regionData[0].id !== 'no-workouts';
   if (!hasWorkouts) {
+    const nextEvent = upcomingEvents[0];
     return {
       title: `F3 ${region.name} - Coming Soon`,
-      description: `F3 ${region.name} is a registered region. Check back for upcoming workout schedules or visit our website to get involved.`,
+      description: nextEvent
+        ? `F3 ${region.name} is a registered region. Next up: ${nextEvent.title} on ${formatEventDate(
+            nextEvent.date,
+            nextEvent.timeZone
+          )}.`
+        : `F3 ${region.name} is a registered region. Check back for upcoming workout schedules or visit our website to get involved.`,
     };
   }
+  const nextEvent = upcomingEvents[0];
   const regionName = region.name;
   const locations = regionData
     .map((workout) => workout.location)
@@ -58,9 +70,15 @@ export async function generateMetadata({
   const locationString =
     uniqueLocations.slice(0, 3).join(', ') +
     (uniqueLocations.length > 3 ? ', and more' : '');
+  const workoutsDescription = `Find F3 workouts in ${regionName}, serving ${locationString}. Join us for free, peer-led workouts in your area.`;
   return {
     title: `F3 ${regionName} Workouts`,
-    description: `Find F3 workouts in ${regionName}, serving ${locationString}. Join us for free, peer-led workouts in your area.`,
+    description: nextEvent
+      ? `${workoutsDescription} Next up: ${nextEvent.title} on ${formatEventDate(
+          nextEvent.date,
+          nextEvent.timeZone
+        )}.`
+      : workoutsDescription,
   };
 }
 
@@ -78,6 +96,7 @@ export default async function RegionPage({
     return <OrphanedRegionContent region={region} />;
   }
 
+  const upcomingEvents = getUpcomingRegionEvents(regionSlug, { limit: 3 });
   const regionName = regionData[0].region.name;
   const website = regionData[0].region.website || undefined;
   const image = regionData[0].region.image || undefined;
@@ -91,12 +110,14 @@ export default async function RegionPage({
 
   return (
     <RegionContent
+      regionSlug={regionSlug}
       regionName={regionName}
       regionDescription={region.description}
       website={website}
       image={image}
       sortedWorkouts={sortWorkoutsByDayAndTime(regionData)}
       mapParams={mapParams}
+      upcomingEvents={upcomingEvents}
     />
   );
 }

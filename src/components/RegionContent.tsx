@@ -9,14 +9,23 @@ import { WorkoutFilters } from '@/components/WorkoutFilters';
 import { getMapUrl } from '@/utils/mapUtils';
 import type { MapParameters } from '@/utils/mapUtils';
 import { WorkoutWithRegion } from '@/types/Workout';
+import type { RegionEvent } from '@/types/Event';
+import {
+  formatEventDate,
+  formatEventTimeRange,
+  getTimeZoneAbbreviation,
+  humanizeTimeZone,
+} from '@/utils/regionEvents';
 
 interface RegionContentProps {
+  regionSlug: string;
   regionName: string;
   regionDescription?: string;
   website?: string;
   image?: string;
   sortedWorkouts: WorkoutWithRegion[];
   mapParams: MapParameters;
+  upcomingEvents?: RegionEvent[];
 }
 
 function FilteredContent({
@@ -169,14 +178,19 @@ export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
 }
 
 export function RegionContent({
+  regionSlug,
   regionName,
   regionDescription,
   website,
   image,
   sortedWorkouts,
   mapParams,
+  upcomingEvents,
 }: RegionContentProps) {
   const mapUrl = getMapUrl(mapParams);
+  const hasUpcomingEvents =
+    Array.isArray(upcomingEvents) && upcomingEvents.length > 0;
+  const eventsToShow = upcomingEvents ?? [];
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -219,6 +233,140 @@ export function RegionContent({
       </div>
 
       <RegionHeader regionName={regionName} website={website} />
+
+      {hasUpcomingEvents ? (
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+              Upcoming Events
+            </h2>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Stay tuned and bring an FNG.
+            </div>
+          </div>
+          <div className="space-y-4">
+            {eventsToShow.map((event) => {
+              const formattedDate = event.date
+                ? formatEventDate(event.date, event.timeZone)
+                : undefined;
+              const tzAbbreviation = event.date
+                ? getTimeZoneAbbreviation(
+                    event.date,
+                    event.timeZone,
+                    event.startTime
+                  )
+                : undefined;
+              const timeRange = formatEventTimeRange(
+                event.startTime,
+                event.endTime,
+                tzAbbreviation
+              );
+              const friendlyTimeZone = humanizeTimeZone(event.timeZone);
+
+              return (
+                <article
+                  key={event.eventSlug}
+                  className="border border-blue-200/70 dark:border-blue-800/60 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                    {formattedDate ? (
+                      <span className="uppercase tracking-wide text-xs font-semibold text-blue-700 dark:text-blue-200">
+                        {formattedDate}
+                      </span>
+                    ) : null}
+                    {event.type ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/80 dark:bg-blue-900/60 text-blue-800 dark:text-blue-100 text-xs font-semibold border border-blue-200/60 dark:border-blue-700/50">
+                        {event.type}
+                      </span>
+                    ) : null}
+                  </div>
+                  <h3 className="text-xl font-bold text-blue-900 dark:text-blue-50 mb-2">
+                    <Link
+                      href={`/${regionSlug}/events/${event.eventSlug}`}
+                      className="hover:underline"
+                    >
+                      {event.title}
+                    </Link>
+                  </h3>
+                  {event.summary ? (
+                    <p className="text-sm md:text-base text-blue-900/90 dark:text-blue-100/90 mb-4">
+                      {event.summary}
+                    </p>
+                  ) : null}
+                  <dl className="space-y-2 text-sm md:text-base text-blue-900 dark:text-blue-100">
+                    {timeRange ? (
+                      <div>
+                        <dt className="font-semibold">Time</dt>
+                        <dd>
+                          {timeRange}
+                          {friendlyTimeZone ? (
+                            <span className="text-xs text-blue-800/75 dark:text-blue-200/75 ml-2">
+                              {friendlyTimeZone}
+                            </span>
+                          ) : null}
+                        </dd>
+                      </div>
+                    ) : null}
+                    {event.location?.name || event.location?.address ? (
+                      <div>
+                        <dt className="font-semibold">Location</dt>
+                        <dd className="space-y-0.5 text-sm md:text-base">
+                          {event.location?.name ? (
+                            <div>{event.location.name}</div>
+                          ) : null}
+                          {event.location?.address ? (
+                            <div className="text-blue-700 dark:text-blue-200">
+                              {event.location.url ? (
+                                <a
+                                  href={event.location.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="hover:underline"
+                                >
+                                  {event.location.address}
+                                </a>
+                              ) : (
+                                event.location.address
+                              )}
+                            </div>
+                          ) : null}
+                          {event.location?.notes ? (
+                            <div className="text-xs text-blue-800/80 dark:text-blue-200/80">
+                              {event.location.notes}
+                            </div>
+                          ) : null}
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+
+                  <div className="mt-5">
+                    <Link
+                      href={`/${regionSlug}/events/${event.eventSlug}`}
+                      className="inline-flex items-center px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      View event details
+                      <svg
+                        className="w-4 h-4 ml-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 12h14M12 5l7 7-7 7"
+                        />
+                      </svg>
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       {/* Personalized Maps CTA Banner */}
       <div className="mb-8 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg">
