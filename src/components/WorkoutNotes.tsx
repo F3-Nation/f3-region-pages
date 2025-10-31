@@ -1,3 +1,13 @@
+'use client';
+
+import type { ReactNode } from 'react';
+import { sanitizeHtmlToReactNodes } from '@/utils/safeHtml';
+
+const EMAIL_SPLIT_REGEX =
+  /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi;
+const EMAIL_MATCH_REGEX =
+  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i;
+
 /**
  * @see http://localhost:3000/anaheim
  * @see https://github.com/F3-Nation/f3-region-pages/issues/35
@@ -6,8 +16,12 @@
 export const WorkoutNotes = ({ notes }: { notes: string | null }) => {
   if (!notes) return null;
 
-  const sanitizedNotes: string = sanitizeNotes(notes);
+  const sanitizedNotes = sanitizeHtmlToReactNodes(notes);
   const enrichedNotes = enrichEmails(sanitizedNotes);
+
+  if (enrichedNotes.length === 0) {
+    return null;
+  }
 
   return (
     <div className="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-line">
@@ -17,20 +31,34 @@ export const WorkoutNotes = ({ notes }: { notes: string | null }) => {
   );
 };
 
-const sanitizeNotes = (notes: string) => {
-  return notes.replace(/<[^>]*>?/g, '');
+const enrichEmails = (nodes: ReactNode[]): ReactNode[] => {
+  return nodes.flatMap((node, idx) => enrichNodeWithEmails(node, idx));
 };
 
-const enrichEmails = (notes: string) => {
-  const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
-  return notes.split(emailRegex).map((part, idx) => {
-    if (emailRegex.test(part)) {
-      return (
-        <a key={idx} href={`mailto:${part}`}>
-          {part}
-        </a>
-      );
-    }
-    return part;
-  });
+const enrichNodeWithEmails = (
+  node: ReactNode,
+  index: number
+): ReactNode[] => {
+  if (typeof node === 'string') {
+    const segments = node.split(EMAIL_SPLIT_REGEX);
+
+    return segments
+      .filter((segment) => segment.length > 0)
+      .map((segment, segmentIdx) => {
+        if (EMAIL_MATCH_REGEX.test(segment)) {
+          return (
+            <a
+              key={`email-${index}-${segmentIdx}`}
+              href={`mailto:${segment}`}
+            >
+              {segment}
+            </a>
+          );
+        }
+
+        return segment;
+      });
+  }
+
+  return [node];
 };
