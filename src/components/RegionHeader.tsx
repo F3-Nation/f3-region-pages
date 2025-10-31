@@ -1,6 +1,4 @@
-import { FaSquareXTwitter } from 'react-icons/fa6';
-import { FaFacebookSquare } from 'react-icons/fa';
-import { FaSquareInstagram } from 'react-icons/fa6';
+import { FaFacebookSquare, FaInstagramSquare, FaTwitterSquare } from 'react-icons/fa';
 import { MdEmail } from 'react-icons/md';
 
 interface RegionHeaderProps {
@@ -27,8 +25,8 @@ export function RegionHeader({
       icon: <MdEmail />,
     },
     { name: 'Facebook', url: facebook, icon: <FaFacebookSquare /> },
-    { name: 'Twitter', url: twitter, icon: <FaSquareXTwitter /> },
-    { name: 'Instagram', url: instagram, icon: <FaSquareInstagram /> },
+    { name: 'Twitter', url: twitter, icon: <FaTwitterSquare /> },
+    { name: 'Instagram', url: instagram, icon: <FaInstagramSquare /> },
   ].filter((link) => link.url);
 
   return (
