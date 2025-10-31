@@ -4,6 +4,49 @@
     "regionName": "F3 Muletown",
     "events": [
       {
+        "id": "ad17c38f64b2",
+        "slugSuffix": "the-anvil-csaup",
+        "legacySlugs": ["the-anvil-csaup"],
+        "title": "The Anvil CSAUP",
+        "headline": "Team-based CSAUP challenge at Riverwalk Park.",
+        "date": "2025-11-15",
+        "startTime": "05:00",
+        "endTime": "07:00",
+        "type": "CSAUP",
+        "location": {
+          "name": "Riverwalk Park Basketball Court",
+          "address": "102 Riverside Dr, Columbia, TN 38401, United States",
+          "url": "https://www.google.com/maps?q=35.6179879,-87.0305082",
+          "notes": "Look for the basketball courts near the river. Plenty of parking on site."
+        },
+        "summary": "Lock in for a two-hour CSAUP where the first evolution sorts teammates and sets the tone for a sharpened morning on the river.",
+        "highlights": [
+          "Kickoff promptly at 0500—show up warmed up and ready.",
+          "Initial THANG determines your squad for the remainder of the event.",
+          "Expect time hacks, consequences, and plenty of sharpening."
+        ],
+        "schedule": [
+          {
+            "label": "CSAUP Beatdown",
+            "time": "06:00"
+          },
+          {
+            "label": "COT",
+            "time": "07:00"
+          }
+        ],
+        "contacts": [
+          {
+            "name": "Jugs",
+            "role": "Event Q"
+          }
+        ],
+        "cta": {
+          "label": "RSVP in Slack",
+          "url": "https://join.slack.com/t/f3muletown/shared_invite/zt-3h2yz6376-WRaCBdah41v6s6sRMUs_Ng"
+        }
+      },
+      {
         "id": "175482b5481d",
         "slugSuffix": "four-years-strong",
         "legacySlugs": ["four-years-strong"],
