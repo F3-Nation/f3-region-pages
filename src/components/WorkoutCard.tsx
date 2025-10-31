@@ -1,26 +1,10 @@
+'use client';
+
 import { WorkoutWithRegion } from '@/types/Workout';
+import { WorkoutNotes } from './WorkoutNotes';
 
 interface WorkoutCardProps {
   workout: WorkoutWithRegion;
-}
-
-function sanitizeHtml(html: string): string {
-  // Basic sanitization - remove script tags and their content
-  return (
-    html
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      // Convert <br> and <br/> to line breaks
-      .replace(/<br\s*\/?>/gi, '\n')
-      // Remove all other HTML tags but keep their content
-      .replace(/<[^>]*>/g, '')
-      // Convert HTML entities
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#039;/g, "'")
-      .trim()
-  );
 }
 
 function getGoogleMapsUrl(workout: WorkoutWithRegion): string {
@@ -35,7 +19,6 @@ function getGoogleMapsUrl(workout: WorkoutWithRegion): string {
 }
 
 export function WorkoutCard({ workout }: WorkoutCardProps) {
-  const notes = workout.notes ? sanitizeHtml(workout.notes) : '';
   const mapsUrl = getGoogleMapsUrl(workout);
 
   return (
@@ -131,12 +114,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
         )}
       </div>
 
-      {notes && (
-        <div className="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-line">
-          <div className="font-medium mb-1">Notes:</div>
-          {notes}
-        </div>
-      )}
+      <WorkoutNotes notes={workout.notes ?? null} />
     </div>
   );
 }

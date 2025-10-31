@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Suspense, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { RegionHeader } from '@/components/RegionHeader';
 import { WorkoutList } from '@/components/WorkoutList';
 import { WorkoutFilters } from '@/components/WorkoutFilters';
@@ -15,6 +15,7 @@ import {
   formatEventDate,
   formatEventTimeRange,
 } from '@/utils/regionEvents';
+import { sanitizeHtmlToReactNodes } from '@/utils/safeHtml';
 
 interface RegionContentProps {
   regionSlug: string;
@@ -71,6 +72,15 @@ const defaultRegionDescription =
   'Free, peer-led workouts for men. Open to all men, held outdoors, rain or shine, hot or cold.';
 
 export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
+  const descriptionSource =
+    region.description && region.description.trim().length > 0
+      ? region.description
+      : defaultRegionDescription;
+  const sanitizedDescription = useMemo(
+    () => sanitizeHtmlToReactNodes(descriptionSource),
+    [descriptionSource]
+  );
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* Back to Regions link */}
@@ -102,7 +112,9 @@ export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
           F3 {region.name}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          {region.description ? region.description : defaultRegionDescription}
+          {sanitizedDescription.length > 0
+            ? sanitizedDescription
+            : descriptionSource}
         </p>
       </div>
 
@@ -198,6 +210,14 @@ export function RegionContent({
   const hasUpcomingEvents =
     Array.isArray(upcomingEvents) && upcomingEvents.length > 0;
   const eventsToShow = upcomingEvents ?? [];
+  const descriptionSource =
+    regionDescription && regionDescription.trim().length > 0
+      ? regionDescription
+      : defaultRegionDescription;
+  const sanitizedDescription = useMemo(
+    () => sanitizeHtmlToReactNodes(descriptionSource),
+    [descriptionSource]
+  );
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -236,7 +256,9 @@ export function RegionContent({
           F3 {regionName}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          {regionDescription ? regionDescription : defaultRegionDescription}
+          {sanitizedDescription.length > 0
+            ? sanitizedDescription
+            : descriptionSource}
         </p>
       </div>
 
