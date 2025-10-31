@@ -259,7 +259,7 @@ export function RegionContent({
               Stay tuned and bring an FNG.
             </div>
           </div>
-          <div className="space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-blue-200/70 dark:border-blue-800/60 bg-blue-50/40 dark:bg-blue-950/10">
             {eventsToShow.map((event) => {
               const formattedDate = event.date
                 ? formatEventDate(event.date)
@@ -268,99 +268,41 @@ export function RegionContent({
                 event.startTime,
                 event.endTime
               );
+              const eventMeta = [formattedDate, timeRange]
+                .filter(Boolean)
+                .join(' • ');
+              const supportingText = event.location?.name ?? event.summary;
 
               return (
-                <article
+                <Link
                   key={event.id}
-                  className="border border-blue-200/70 dark:border-blue-800/60 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                  href={`/${regionSlug}/events/${buildEventSlug(event)}`}
+                  className="flex flex-col gap-2 border-b border-blue-200/70 px-5 py-4 text-blue-900 transition-colors hover:bg-blue-100/60 focus-visible:bg-blue-100/60 last:border-b-0 dark:border-blue-800/60 dark:text-blue-100 dark:hover:bg-blue-900/30 dark:focus-visible:bg-blue-900/30"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-                    {formattedDate ? (
-                      <span className="uppercase tracking-wide text-xs font-semibold text-blue-700 dark:text-blue-200">
-                        {formattedDate}
-                      </span>
-                    ) : null}
-                    {event.type ? (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/80 dark:bg-blue-900/60 text-blue-800 dark:text-blue-100 text-xs font-semibold border border-blue-200/60 dark:border-blue-700/50">
-                        {event.type}
-                      </span>
-                    ) : null}
-                  </div>
-                  <h3 className="text-xl font-bold text-blue-900 dark:text-blue-50 mb-2">
-                    <Link
-                      href={`/${regionSlug}/events/${buildEventSlug(event)}`}
-                      className="hover:underline"
-                    >
+                  {eventMeta || event.type ? (
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-blue-700 dark:text-blue-200">
+                      {eventMeta ? <span>{eventMeta}</span> : null}
+                      {event.type ? (
+                        <span className="ml-auto inline-flex items-center rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-800 dark:bg-blue-900/50 dark:text-blue-100">
+                          {event.type}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                    <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-50 md:pr-6">
                       {event.title}
-                    </Link>
-                  </h3>
-                  {event.summary ? (
-                    <p className="text-sm md:text-base text-blue-900/90 dark:text-blue-100/90 mb-4">
-                      {event.summary}
+                    </h3>
+                    <span className="text-sm font-medium text-blue-600 dark:text-blue-200 md:ml-auto">
+                      View details →
+                    </span>
+                  </div>
+                  {supportingText ? (
+                    <p className="text-sm text-blue-800/80 dark:text-blue-200/80">
+                      {supportingText}
                     </p>
                   ) : null}
-                  <dl className="space-y-2 text-sm md:text-base text-blue-900 dark:text-blue-100">
-                    {timeRange ? (
-                      <div>
-                        <dt className="font-semibold">Time</dt>
-                        <dd>{timeRange}</dd>
-                      </div>
-                    ) : null}
-                    {event.location?.name || event.location?.address ? (
-                      <div>
-                        <dt className="font-semibold">Location</dt>
-                        <dd className="space-y-0.5 text-sm md:text-base">
-                          {event.location?.name ? (
-                            <div>{event.location.name}</div>
-                          ) : null}
-                          {event.location?.address ? (
-                            <div className="text-blue-700 dark:text-blue-200">
-                              {event.location.url ? (
-                                <a
-                                  href={event.location.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="hover:underline"
-                                >
-                                  {event.location.address}
-                                </a>
-                              ) : (
-                                event.location.address
-                              )}
-                            </div>
-                          ) : null}
-                          {event.location?.notes ? (
-                            <div className="text-xs text-blue-800/80 dark:text-blue-200/80">
-                              {event.location.notes}
-                            </div>
-                          ) : null}
-                        </dd>
-                      </div>
-                    ) : null}
-                  </dl>
-
-                  <div className="mt-5">
-                    <Link
-                      href={`/${regionSlug}/events/${buildEventSlug(event)}`}
-                      className="inline-flex items-center px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                      View event details
-                      <svg
-                        className="w-4 h-4 ml-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 12h14M12 5l7 7-7 7"
-                        />
-                      </svg>
-                    </Link>
-                  </div>
-                </article>
+                </Link>
               );
             })}
           </div>
