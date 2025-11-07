@@ -42,10 +42,13 @@ const createMockRegion = (overrides: Partial<Region> = {}): Region => ({
 const createWorkoutsFromFixture = (): WorkoutWithRegion[] => {
   const headers = fixtureData.values[0];
   return fixtureData.values.slice(1).map((row) => {
-    const record = headers.reduce((acc, header, index) => {
-      acc[header] = row[index];
-      return acc;
-    }, {} as Record<string, string>);
+    const record = headers.reduce(
+      (acc, header, index) => {
+        acc[header] = row[index];
+        return acc;
+      },
+      {} as Record<string, string>
+    );
 
     const regionName = record.Region || 'Unknown Region';
     const regionSlug = slugify(regionName);
