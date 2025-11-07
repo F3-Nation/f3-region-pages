@@ -23,12 +23,15 @@ export default async function HomePage({ searchParams }: RegionsPageProps) {
     (async () => {
       const all = await fetchRegionsWithWorkoutCounts();
       // Group by first letter
-      return ALL_LETTERS.reduce((acc, letter) => {
-        acc[letter] = all.filter((r) =>
-          (r.name || '').toUpperCase().startsWith(letter)
-        );
-        return acc;
-      }, {} as Record<string, typeof all>);
+      return ALL_LETTERS.reduce(
+        (acc, letter) => {
+          acc[letter] = all.filter((r) =>
+            (r.name || '').toUpperCase().startsWith(letter)
+          );
+          return acc;
+        },
+        {} as Record<string, typeof all>
+      );
     })(),
     searchParams,
   ]);

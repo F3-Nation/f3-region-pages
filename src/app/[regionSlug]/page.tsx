@@ -14,10 +14,7 @@ import {
   RegionContent,
   OrphanedRegionContent,
 } from '@/components/RegionContent';
-import {
-  formatEventDate,
-  getUpcomingRegionEvents,
-} from '@/utils/regionEvents';
+import { formatEventDate, getUpcomingRegionEvents } from '@/utils/regionEvents';
 
 interface RegionProps {
   params: Promise<{

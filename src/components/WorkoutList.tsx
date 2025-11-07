@@ -39,23 +39,32 @@ export function WorkoutList({ workouts }: WorkoutListProps) {
   }, [workouts, searchParams, dayParam]);
 
   // Group workouts by day when no day filter is active
-  const groupedWorkouts = dayParam 
-    ? null 
-    : filteredWorkouts.reduce((acc, workout) => {
-        const day = workout.group || 'Other';
-        if (!acc[day]) acc[day] = [];
-        acc[day].push(workout);
-        return acc;
-      }, {} as Record<string, WorkoutWithRegion[]>);
+  const groupedWorkouts = dayParam
+    ? null
+    : filteredWorkouts.reduce(
+        (acc, workout) => {
+          const day = workout.group || 'Other';
+          if (!acc[day]) acc[day] = [];
+          acc[day].push(workout);
+          return acc;
+        },
+        {} as Record<string, WorkoutWithRegion[]>
+      );
 
   // Sort grouped workouts by day order (Monday to Sunday) with case-insensitive matching
   const sortedGroupedWorkouts = groupedWorkouts
     ? Object.entries(groupedWorkouts).sort(([dayA], [dayB]) => {
         // Convert to Title Case for matching with DAYS_ORDER
-        const titleCaseA = dayA.charAt(0).toUpperCase() + dayA.slice(1).toLowerCase();
-        const titleCaseB = dayB.charAt(0).toUpperCase() + dayB.slice(1).toLowerCase();
-        const indexA = DAYS_ORDER.indexOf(titleCaseA as typeof DAYS_ORDER[number]);
-        const indexB = DAYS_ORDER.indexOf(titleCaseB as typeof DAYS_ORDER[number]);
+        const titleCaseA =
+          dayA.charAt(0).toUpperCase() + dayA.slice(1).toLowerCase();
+        const titleCaseB =
+          dayB.charAt(0).toUpperCase() + dayB.slice(1).toLowerCase();
+        const indexA = DAYS_ORDER.indexOf(
+          titleCaseA as (typeof DAYS_ORDER)[number]
+        );
+        const indexB = DAYS_ORDER.indexOf(
+          titleCaseB as (typeof DAYS_ORDER)[number]
+        );
         return indexA - indexB;
       })
     : null;

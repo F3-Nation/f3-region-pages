@@ -222,17 +222,20 @@ export const fetchRegionsByLetter = async (): Promise<
   Record<string, Omit<Region, 'id'>[]>
 > => {
   const regionsRaw = await getCachedRegions();
-  return ALL_LETTERS.reduce((acc, letter) => {
-    const filteredRegions =
-      (regionsRaw
-        .filter((region) =>
-          (region.name || '').toLowerCase().startsWith(letter.toLowerCase())
-        )
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-        .map(normalizeRegionFields) as Omit<Region, 'id'>[]) || [];
-    acc[letter] = filteredRegions;
-    return acc;
-  }, {} as Record<string, Omit<Region, 'id'>[]>);
+  return ALL_LETTERS.reduce(
+    (acc, letter) => {
+      const filteredRegions =
+        (regionsRaw
+          .filter((region) =>
+            (region.name || '').toLowerCase().startsWith(letter.toLowerCase())
+          )
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+          .map(normalizeRegionFields) as Omit<Region, 'id'>[]) || [];
+      acc[letter] = filteredRegions;
+      return acc;
+    },
+    {} as Record<string, Omit<Region, 'id'>[]>
+  );
 };
 
 export const fetchWorkoutLocationsByRegion = async (

@@ -17,8 +17,7 @@ interface EventPageParams {
 
 export const dynamicParams = true;
 
-export const generateStaticParams = async () =>
-  getAllEventStaticParams();
+export const generateStaticParams = async () => getAllEventStaticParams();
 
 export async function generateMetadata({
   params,
@@ -41,10 +40,7 @@ export async function generateMetadata({
   } = match;
 
   const formattedDate = formatEventDate(event.date);
-  const timeRange = formatEventTimeRange(
-    event.startTime,
-    event.endTime
-  );
+  const timeRange = formatEventTimeRange(event.startTime, event.endTime);
 
   const summary =
     event.summary ??
@@ -96,10 +92,7 @@ export default async function EventPage({
       .join(' ')}`;
 
   const formattedDate = formatEventDate(event.date);
-  const timeRange = formatEventTimeRange(
-    event.startTime,
-    event.endTime
-  );
+  const timeRange = formatEventTimeRange(event.startTime, event.endTime);
   const eventHasEnded = hasEventEnded(event);
 
   return (
@@ -176,7 +169,9 @@ export default async function EventPage({
                   <div>
                     <dt className="font-semibold">Location</dt>
                     <dd className="space-y-0.5">
-                      {event.location?.name ? <div>{event.location.name}</div> : null}
+                      {event.location?.name ? (
+                        <div>{event.location.name}</div>
+                      ) : null}
                       {event.location?.address ? (
                         <div className="text-blue-700 dark:text-blue-200">
                           {event.location.url ? (
@@ -283,9 +278,7 @@ export default async function EventPage({
                           </a>
                         </div>
                       ) : null}
-                      {contact.slack ? (
-                        <div>Slack: {contact.slack}</div>
-                      ) : null}
+                      {contact.slack ? <div>Slack: {contact.slack}</div> : null}
                     </div>
                   </div>
                 ))}

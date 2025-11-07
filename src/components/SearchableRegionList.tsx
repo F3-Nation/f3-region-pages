@@ -493,10 +493,10 @@ export default function SearchableRegionList({
             ? `Found ${nearbyRegions.length} regions within 200 miles`
             : 'No regions found within 200 miles'
           : searchQuery
-          ? `Found ${filteredRegions.length} matching regions`
-          : regionsByLetter[currentLetter].length > 0
-          ? `Showing ${regionsByLetter[currentLetter].length} regions starting with "${currentLetter}"`
-          : `No regions found starting with "${currentLetter}"`}
+            ? `Found ${filteredRegions.length} matching regions`
+            : regionsByLetter[currentLetter].length > 0
+              ? `Showing ${regionsByLetter[currentLetter].length} regions starting with "${currentLetter}"`
+              : `No regions found starting with "${currentLetter}"`}
       </div>
 
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

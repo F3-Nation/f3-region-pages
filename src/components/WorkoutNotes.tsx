@@ -3,10 +3,8 @@
 import type { ReactNode } from 'react';
 import { sanitizeHtmlToReactNodes } from '@/utils/safeHtml';
 
-const EMAIL_SPLIT_REGEX =
-  /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi;
-const EMAIL_MATCH_REGEX =
-  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i;
+const EMAIL_SPLIT_REGEX = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi;
+const EMAIL_MATCH_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i;
 
 /**
  * @see http://localhost:3000/anaheim
@@ -35,10 +33,7 @@ const enrichEmails = (nodes: ReactNode[]): ReactNode[] => {
   return nodes.flatMap((node, idx) => enrichNodeWithEmails(node, idx));
 };
 
-const enrichNodeWithEmails = (
-  node: ReactNode,
-  index: number
-): ReactNode[] => {
+const enrichNodeWithEmails = (node: ReactNode, index: number): ReactNode[] => {
   if (typeof node === 'string') {
     const segments = node.split(EMAIL_SPLIT_REGEX);
 
@@ -47,10 +42,7 @@ const enrichNodeWithEmails = (
       .map((segment, segmentIdx) => {
         if (EMAIL_MATCH_REGEX.test(segment)) {
           return (
-            <a
-              key={`email-${index}-${segmentIdx}`}
-              href={`mailto:${segment}`}
-            >
+            <a key={`email-${index}-${segmentIdx}`} href={`mailto:${segment}`}>
               {segment}
             </a>
           );

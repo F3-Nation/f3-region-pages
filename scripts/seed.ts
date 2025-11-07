@@ -337,13 +337,16 @@ async function enrichRegions() {
       .where(eq(workoutsSchema.regionId, region.id));
 
     // Calculate region location from most common zip code
-    const regionPostalCodeCounts = workouts.reduce((acc, workout) => {
-      const zip = workout.zip;
-      if (zip) {
-        acc[zip] = (acc[zip] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+    const regionPostalCodeCounts = workouts.reduce(
+      (acc, workout) => {
+        const zip = workout.zip;
+        if (zip) {
+          acc[zip] = (acc[zip] || 0) + 1;
+        }
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const entries = Object.entries(regionPostalCodeCounts);
     let city = region.city;
