@@ -12,28 +12,33 @@ Thank you for your interest in contributing to the F3 Region Pages project! This
 ## Development Environment Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/F3-Nation/f3-region-pages.git
    cd f3-region-pages
    ```
 
 2. **Set up Node.js environment**
+
    ```bash
    nvm install     # Installs the version specified in .nvmrc (20.18.2)
    nvm use         # Switches to the project's Node.js version
    ```
 
 3. **Install development dependencies**
+
    ```bash
    npm i -D        # Shorthand for npm install --save-dev
    ```
 
 4. **Set up local database**
+
    ```bash
    npm run db:setup:local    # Starts Supabase, sets up environment, and seeds database
    ```
 
 5. **Start the development server**
+
    ```bash
    npm run dev     # Starts Next.js development server
    ```

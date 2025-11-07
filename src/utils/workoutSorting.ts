@@ -13,7 +13,6 @@ export const DAYS_ORDER = [
 
 type DayOfWeek = (typeof DAYS_ORDER)[number];
 
-
 /**
  * Sort workouts chronologically by day of week (Sunday to Saturday)
  * and alphabetically by name within each day
