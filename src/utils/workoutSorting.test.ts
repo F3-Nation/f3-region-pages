@@ -425,4 +425,143 @@ describe('sortWorkoutsByDayAndTime', () => {
       'The Keep',
     ]);
   });
+
+  test('falls back to midnight for blank or malformed times and sorts alphabetically on ties', () => {
+    const workouts = [
+      createWorkout('Thursday', '05:00 AM - 05:45 AM', '1', 'Late Start'),
+      createWorkout('Thursday', '', '2', 'Alpha Midnight'),
+      createWorkout('Thursday', 'sunrise', '3', 'Bravo Midnight'),
+    ];
+
+    const sorted = sortWorkoutsByDayAndTime(workouts);
+
+    expect(sorted.map((w) => w.name)).toEqual([
+      'Alpha Midnight',
+      'Bravo Midnight',
+      'Late Start',
+    ]);
+  });
+
+  test('converts 12 AM and afternoon times to the expected 24-hour order', () => {
+    const workouts = [
+      createWorkout('Friday', '12:15 AM - 01:00 AM', '1', 'Midnight Madness'),
+      createWorkout('Friday', '06:00 AM - 06:45 AM', '2', 'Sunrise Beatdown'),
+      createWorkout('Friday', '01:00 PM - 01:45 PM', '3', 'Lunch Club'),
+    ];
+
+    const sorted = sortWorkoutsByDayAndTime(workouts);
+
+    expect(sorted.map((w) => w.name)).toEqual([
+      'Midnight Madness',
+      'Sunrise Beatdown',
+      'Lunch Club',
+    ]);
+  });
+
+  test('rolls earlier-week workouts into the following week', () => {
+    const workouts = [
+      createWorkout('Friday', '05:15 AM - 06:00 AM', '1', 'Friday Fun'),
+      createWorkout('Monday', '05:00 AM - 05:45 AM', '2', 'Monday Mayhem'),
+      createWorkout('Tuesday', '05:00 AM - 05:45 AM', '3', 'Tuesday Thunder'),
+    ];
+
+    const sorted = sortWorkoutsByDayAndTime(workouts);
+
+    expect(sorted.map((w) => w.name)).toEqual([
+      'Friday Fun',
+      'Monday Mayhem',
+      'Tuesday Thunder',
+    ]);
+  });
+
+  test('pushes workouts with invalid day names to the end', () => {
+    const workouts = [
+      createWorkout('Friday', '05:15 AM - 06:00 AM', '1', 'Friday Fun'),
+      createWorkout('Saturday', '06:30 AM - 07:15 AM', '2', 'Saturday Sweep'),
+      {
+        ...createWorkout(
+          'Friday',
+          '04:00 AM - 04:45 AM',
+          '3',
+          'Mystery Workout'
+        ),
+        group: 'Funday',
+      },
+    ];
+
+    const sorted = sortWorkoutsByDayAndTime(workouts);
+
+    expect(sorted.map((w) => w.name)).toEqual([
+      'Friday Fun',
+      'Saturday Sweep',
+      'Mystery Workout',
+    ]);
+  });
+
+  test('treats workouts without a day as far-future entries', () => {
+    const workouts = [
+      createWorkout('Friday', '05:15 AM - 06:00 AM', '1', 'Friday Fun'),
+      {
+        ...createWorkout('Friday', '04:00 AM - 04:45 AM', '2', 'No Day Workout'),
+        group: '',
+      },
+    ];
+
+    const sorted = sortWorkoutsByDayAndTime(workouts);
+
+    expect(sorted.map((w) => w.name)).toEqual(['Friday Fun', 'No Day Workout']);
+  });
+
+  test('handles workouts with unexpected time objects by defaulting to midnight', () => {
+    const weirdTime = {
+      split: () => [],
+    } as unknown as string;
+
+    const workouts = [
+      createWorkout('Friday', '05:15 AM - 06:00 AM', '1', 'Friday Fun'),
+      {
+        ...createWorkout('Friday', '06:00 AM - 06:45 AM', '2', 'Unknown Format'),
+        time: weirdTime,
+      },
+    ];
+
+    const sorted = sortWorkoutsByDayAndTime(workouts);
+
+    expect(sorted[0].name).toBe('Unknown Format');
+  });
+
+  test('parses times without explicit minutes', () => {
+    const workouts = [
+      createWorkout('Friday', '5 AM - 6 AM', '1', 'Hour On The Hour'),
+      createWorkout('Friday', '05:30 AM - 06:15 AM', '2', 'Morning Shift'),
+    ];
+
+    const sorted = sortWorkoutsByDayAndTime(workouts);
+
+    expect(sorted.map((w) => w.name)).toEqual([
+      'Hour On The Hour',
+      'Morning Shift',
+    ]);
+  });
+
+  test('falls back to empty strings when workout names are missing', () => {
+    const workouts = [
+      {
+        ...createWorkout('Friday', '05:00 AM - 05:45 AM', '1', ''),
+        name: '',
+      },
+      {
+        ...createWorkout('Friday', '05:00 AM - 05:45 AM', '2', ''),
+        name: '',
+      },
+      createWorkout('Friday', '05:00 AM - 05:45 AM', '3', 'Named Workout'),
+    ];
+
+    const sorted = sortWorkoutsByDayAndTime(workouts);
+
+    expect(sorted.slice(-1)[0].name).toBe('Named Workout');
+    expect(sorted.slice(0, 2).every((workout) => workout.name === '')).toBe(
+      true
+    );
+  });
 });
