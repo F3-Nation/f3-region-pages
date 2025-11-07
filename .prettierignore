@@ -7,3 +7,4 @@ drizzle/migrations
 *.min.js
 *.bundle.js
 *.map 
+pnpm-lock.yaml
