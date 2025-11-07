@@ -502,7 +502,12 @@ describe('sortWorkoutsByDayAndTime', () => {
     const workouts = [
       createWorkout('Friday', '05:15 AM - 06:00 AM', '1', 'Friday Fun'),
       {
-        ...createWorkout('Friday', '04:00 AM - 04:45 AM', '2', 'No Day Workout'),
+        ...createWorkout(
+          'Friday',
+          '04:00 AM - 04:45 AM',
+          '2',
+          'No Day Workout'
+        ),
         group: '',
       },
     ];
@@ -520,7 +525,12 @@ describe('sortWorkoutsByDayAndTime', () => {
     const workouts = [
       createWorkout('Friday', '05:15 AM - 06:00 AM', '1', 'Friday Fun'),
       {
-        ...createWorkout('Friday', '06:00 AM - 06:45 AM', '2', 'Unknown Format'),
+        ...createWorkout(
+          'Friday',
+          '06:00 AM - 06:45 AM',
+          '2',
+          'Unknown Format'
+        ),
         time: weirdTime,
       },
     ];
