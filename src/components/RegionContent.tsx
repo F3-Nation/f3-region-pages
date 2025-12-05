@@ -214,6 +214,7 @@ export function RegionContent({
     regionDescription && regionDescription.trim().length > 0
       ? regionDescription
       : defaultRegionDescription;
+  const isFallbackLogo = !image;
   const sanitizedDescription = useMemo(
     () => sanitizeHtmlToReactNodes(descriptionSource),
     [descriptionSource]
@@ -244,15 +245,36 @@ export function RegionContent({
       </div>
 
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">
-          <Image
-            src={image || '/f3.svg'}
-            alt={regionName}
-            width={150}
-            height={150}
-            className="w-150 h-150 mb-4 mr-2"
-            priority={true}
-          />
+        <h1 className="text-4xl font-bold mb-2 flex items-center">
+          {isFallbackLogo ? (
+            <>
+              <Image
+                src="/f3.svg"
+                alt={`${regionName} logo`}
+                width={150}
+                height={150}
+                className="w-150 h-150 mb-4 mr-2 dark:hidden"
+                priority={true}
+              />
+              <Image
+                src="/f3-white.svg"
+                alt={`${regionName} logo`}
+                width={150}
+                height={150}
+                className="hidden w-150 h-150 mb-4 mr-2 dark:block"
+                priority={true}
+              />
+            </>
+          ) : (
+            <Image
+              src={image}
+              alt={regionName}
+              width={150}
+              height={150}
+              className="w-150 h-150 mb-4 mr-2"
+              priority={true}
+            />
+          )}
           F3 {regionName}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
