@@ -5,18 +5,8 @@ import {
   regions as regionsSchema,
   workouts as workoutsSchema,
 } from '../drizzle/schema';
-import { markSeedRun, shouldSkipSeed } from './seed-state';
 
 export async function enrichRegions() {
-  const force = !!process.env.SEED_FORCE;
-  const { skip, lastRun } = await shouldSkipSeed('enrich', force);
-  if (skip) {
-    console.debug(
-      `⏭️ skipping enrich-regions; ran within last 48h (last=${lastRun})`
-    );
-    return;
-  }
-
   console.debug('🔄 enriching regions...');
   const regions = await db
     .select()
@@ -129,7 +119,6 @@ export async function enrichRegions() {
       })
       .where(eq(regionsSchema.id, region.id));
   }
-  await markSeedRun('enrich');
   console.debug('✅ done enriching regions');
 }
 

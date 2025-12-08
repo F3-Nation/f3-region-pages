@@ -24,6 +24,7 @@ export const regions = pgTable('regions', {
   facebook: varchar(),
   twitter: varchar(),
   instagram: varchar(),
+  lastIngestedAt: timestamp('last_ingested_at', { mode: 'string' }),
 });
 
 export const workouts = pgTable('workouts', {
@@ -41,6 +42,7 @@ export const workouts = pgTable('workouts', {
   zip: varchar(),
   country: varchar(),
   location: varchar(),
+  lastIngestedAt: timestamp('last_ingested_at', { mode: 'string' }),
 });
 
 export const seedRuns = pgTable('seed_runs', {

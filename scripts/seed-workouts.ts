@@ -13,7 +13,7 @@ import {
   eventsXEventTypes as eventsXEventTypesSchema,
   eventTypes as eventTypesSchema,
 } from '../drizzle/f3-data-warehouse/schema';
-import { markSeedRun, shouldSkipSeed } from './seed-state';
+import { currentIngestedAt, isFresh } from './seed-state';
 
 type Workout = typeof workoutsSchema.$inferInsert;
 
@@ -40,17 +40,25 @@ const UPSERT_CONCURRENCY = Math.max(
   Number(process.env.WORKOUT_SEED_UPSERT_CONCURRENCY ?? '8')
 );
 
+async function loadWorkoutIngestionMap() {
+  const rows = await db
+    .select({
+      id: workoutsSchema.id,
+      lastIngestedAt: workoutsSchema.lastIngestedAt,
+    })
+    .from(workoutsSchema);
+
+  return new Map<string, string | null>(
+    rows.map((row) => [row.id, row.lastIngestedAt ?? null])
+  );
+}
+
 export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
   const force = !!process.env.SEED_FORCE;
-  const { skip, lastRun } = await shouldSkipSeed('workouts', force);
-  if (skip) {
-    console.debug(
-      `⏭️ skipping workouts seed; ran within last 48h (last=${lastRun})`
-    );
-    return;
-  }
 
   console.debug('🔄 seeding workouts with batched incremental loader...');
+  const ingestedAt = currentIngestedAt();
+  const lastIngestedById = await loadWorkoutIngestionMap();
 
   const options: SeedOptions = {
     batchSize: Number.isFinite(opts.batchSize)
@@ -97,6 +105,9 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
       batchSize: options.batchSize,
       updatedAfter: normalizedUpdatedAfter,
       supabaseRegionIds,
+      lastIngestedById,
+      ingestedAt,
+      force,
     });
 
     if (!workouts.length && !nextCursor) {
@@ -115,7 +126,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     console.debug(
       `📦 batch ${batchNumber}: upserted=${workouts.length}, skipped=${skipped.total}` +
         (skipped.total
-          ? ` (missingType=${skipped.missingType}, missingAo=${skipped.missingAo}, missingRegion=${skipped.missingRegion}, missingGroup=${skipped.missingGroup}, missingLocation=${skipped.missingLocation})`
+          ? ` (missingType=${skipped.missingType}, missingAo=${skipped.missingAo}, missingRegion=${skipped.missingRegion}, missingGroup=${skipped.missingGroup}, missingLocation=${skipped.missingLocation}, fresh=${skipped.fresh})`
           : '')
     );
 
@@ -125,7 +136,6 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
   console.debug(
     `✅ done inserting workouts (total upserted: ${totalInserted} across ${batchNumber} batch(es))`
   );
-  await markSeedRun('workouts');
 }
 
 async function loadSupabaseRegionIds() {
@@ -160,6 +170,7 @@ type BatchResult = {
     missingRegion: number;
     missingLocation: number;
     missingGroup: number;
+    fresh: number;
   };
 };
 
@@ -168,6 +179,9 @@ type FetchBatchArgs = {
   batchSize: number;
   updatedAfter?: string;
   supabaseRegionIds: Set<string>;
+  lastIngestedById: Map<string, string | null>;
+  ingestedAt: string;
+  force: boolean;
 };
 
 async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
@@ -221,6 +235,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
         missingRegion: 0,
         missingType: 0,
         missingGroup: 0,
+        fresh: 0,
       },
     };
   }
@@ -330,9 +345,20 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     missingRegion: 0,
     missingLocation: 0,
     missingGroup: 0,
+    fresh: 0,
   };
 
   for (const row of baseRows) {
+    if (!args.force) {
+      const lastIngestedAt =
+        args.lastIngestedById.get(row.id.toString()) ?? null;
+      if (isFresh(lastIngestedAt)) {
+        skipped.total++;
+        skipped.fresh++;
+        continue;
+      }
+    }
+
     const eventTypeId = eventTypeByEvent.get(row.id);
     const eventTypeName = eventTypeId
       ? eventTypeNameById.get(eventTypeId)
@@ -410,6 +436,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       zip: location.zip,
       country: location.country,
       location: formattedLocation,
+      lastIngestedAt: args.ingestedAt,
     });
   }
 

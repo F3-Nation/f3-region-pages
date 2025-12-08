@@ -5,7 +5,7 @@ import { db } from '../drizzle/db';
 import { regions as regionsSchema } from '../drizzle/schema';
 import { db as f3DataWarehouseDb } from '../drizzle/f3-data-warehouse/db';
 import { orgs as orgsSchema } from '../drizzle/f3-data-warehouse/schema';
-import { markSeedRun, shouldSkipSeed } from './seed-state';
+import { currentIngestedAt, isFresh } from './seed-state';
 
 type Region = typeof regionsSchema.$inferInsert;
 
@@ -13,38 +13,65 @@ const DEFAULT_REGION_BATCH_SIZE = Number(
   process.env.REGION_SEED_BATCH_SIZE ?? '1000'
 );
 
+async function loadRegionIngestionMap() {
+  const rows = await db
+    .select({
+      id: regionsSchema.id,
+      lastIngestedAt: regionsSchema.lastIngestedAt,
+    })
+    .from(regionsSchema);
+
+  return new Map<string, string | null>(
+    rows.map((row) => [row.id, row.lastIngestedAt ?? null])
+  );
+}
+
 export async function seedRegions() {
   const force = !!process.env.SEED_FORCE;
-  const { skip, lastRun } = await shouldSkipSeed('regions', force);
-  if (skip) {
-    console.debug(
-      `⏭️ skipping regions seed; ran within last 48h (last=${lastRun})`
-    );
-    return;
-  }
 
   console.debug('🔄 seeding regions...');
+  const ingestedAt = currentIngestedAt();
+  const lastIngestedById = await loadRegionIngestionMap();
+  let skippedFresh = 0;
+  let upserted = 0;
   const regions = fetchRegions();
   const batchSize = DEFAULT_REGION_BATCH_SIZE;
   const buffer: Region[] = [];
   let batchNumber = 0;
 
   for await (const region of regions) {
+    const lastIngestedAt = lastIngestedById.get(region.id);
+    if (!force && isFresh(lastIngestedAt)) {
+      skippedFresh++;
+      continue;
+    }
+
     buffer.push(region);
     if (buffer.length >= batchSize) {
       batchNumber++;
-      await upsertRegionBatch(buffer, batchNumber);
+      const batchLength = buffer.length;
+      await upsertRegionBatch(
+        buffer.map((item) => ({ ...item, lastIngestedAt: ingestedAt })),
+        batchNumber
+      );
+      upserted += batchLength;
       buffer.length = 0;
     }
   }
 
   if (buffer.length) {
     batchNumber++;
-    await upsertRegionBatch(buffer, batchNumber);
+    const batchLength = buffer.length;
+    await upsertRegionBatch(
+      buffer.map((item) => ({ ...item, lastIngestedAt: ingestedAt })),
+      batchNumber
+    );
+    upserted += batchLength;
   }
 
-  await markSeedRun('regions');
-  console.debug('✅ done inserting regions');
+  console.debug(
+    `✅ done inserting regions (upserted=${upserted}, skippedFresh=${skippedFresh})`
+  );
 }
 
 function transformTwitterUrl(twitter: string | null): string | null {
