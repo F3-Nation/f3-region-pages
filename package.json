@@ -25,6 +25,8 @@
     "db:seed:workouts": "bun scripts/seed-workouts.ts",
     "db:seed:enrich-regions": "bun scripts/enrich-regions.ts",
     "db:seed": "pnpm run db:seed:regions && pnpm run db:seed:workouts && pnpm run db:seed:enrich-regions",
+    "db:prune:regions": "bun scripts/prune-regions.ts",
+    "db:prune:workouts": "bun scripts/prune-workouts.ts",
     "db:setup:local": "scripts/db-setup-local.sh",
     "db:generate:warehouse-schema": "bun scripts/generate-warehouse-schema.ts",
     "docker:kill": "scripts/docker-kill.sh",
