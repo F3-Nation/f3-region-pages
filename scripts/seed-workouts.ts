@@ -115,7 +115,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     console.debug(
       `📦 batch ${batchNumber}: upserted=${workouts.length}, skipped=${skipped.total}` +
         (skipped.total
-          ? ` (missingType=${skipped.missingType}, missingAo=${skipped.missingAo}, missingRegion=${skipped.missingRegion}, missingLocation=${skipped.missingLocation})`
+          ? ` (missingType=${skipped.missingType}, missingAo=${skipped.missingAo}, missingRegion=${skipped.missingRegion}, missingGroup=${skipped.missingGroup}, missingLocation=${skipped.missingLocation})`
           : '')
     );
 
@@ -159,6 +159,7 @@ type BatchResult = {
     missingAo: number;
     missingRegion: number;
     missingLocation: number;
+    missingGroup: number;
   };
 };
 
@@ -176,15 +177,17 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
   }
 
   if (args.cursor) {
-    conditions.push(
-      or(
-        gt(eventsSchema.updated, args.cursor.updated),
-        and(
-          eq(eventsSchema.updated, args.cursor.updated),
-          gt(eventsSchema.id, args.cursor.id)
-        )
+    const cursorClause = or(
+      gt(eventsSchema.updated, args.cursor.updated),
+      and(
+        eq(eventsSchema.updated, args.cursor.updated),
+        gt(eventsSchema.id, args.cursor.id)
       )
     );
+
+    if (cursorClause) {
+      conditions.push(cursorClause);
+    }
   }
 
   const whereClause =
@@ -217,6 +220,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
         missingLocation: 0,
         missingRegion: 0,
         missingType: 0,
+        missingGroup: 0,
       },
     };
   }
@@ -325,6 +329,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     missingAo: 0,
     missingRegion: 0,
     missingLocation: 0,
+    missingGroup: 0,
   };
 
   for (const row of baseRows) {
@@ -354,6 +359,12 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     ) {
       skipped.total++;
       skipped.missingRegion++;
+      continue;
+    }
+
+    if (!row.group) {
+      skipped.total++;
+      skipped.missingGroup++;
       continue;
     }
 

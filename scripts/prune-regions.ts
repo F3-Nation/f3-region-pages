@@ -45,6 +45,8 @@ export async function pruneRegions() {
   console.debug(`✅ pruned ${removed} region(s)`);
 }
 
-if (import.meta.main) {
+const importMeta = import.meta as ImportMeta & { main?: boolean };
+
+if (importMeta.main) {
   await pruneRegions();
 }

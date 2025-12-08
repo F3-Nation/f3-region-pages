@@ -173,6 +173,8 @@ async function upsertRegionBatch(regions: Region[], batchNumber: number) {
   );
 }
 
-if (import.meta.main) {
+const isMainModule = (import.meta as ImportMeta & { main?: boolean }).main;
+
+if (isMainModule) {
   await seedRegions();
 }
