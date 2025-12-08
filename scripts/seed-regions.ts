@@ -9,6 +9,10 @@ import { markSeedRun, shouldSkipSeed } from './seed-state';
 
 type Region = typeof regionsSchema.$inferInsert;
 
+const DEFAULT_REGION_BATCH_SIZE = Number(
+  process.env.REGION_SEED_BATCH_SIZE ?? '1000'
+);
+
 export async function seedRegions() {
   const force = !!process.env.SEED_FORCE;
   const { skip, lastRun } = await shouldSkipSeed('regions', force);
@@ -21,21 +25,24 @@ export async function seedRegions() {
 
   console.debug('🔄 seeding regions...');
   const regions = fetchRegions();
-  let i = 1;
+  const batchSize = DEFAULT_REGION_BATCH_SIZE;
+  const buffer: Region[] = [];
+  let batchNumber = 0;
+
   for await (const region of regions) {
-    console.debug(`inserting region ${i}: ${region.name}`);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { city, state, zip, country, latitude, longitude, zoom, ...rest } =
-      region;
-    await db
-      .insert(regionsSchema)
-      .values(region)
-      .onConflictDoUpdate({
-        target: [regionsSchema.id],
-        set: rest,
-      });
-    i++;
+    buffer.push(region);
+    if (buffer.length >= batchSize) {
+      batchNumber++;
+      await upsertRegionBatch(buffer, batchNumber);
+      buffer.length = 0;
+    }
   }
+
+  if (buffer.length) {
+    batchNumber++;
+    await upsertRegionBatch(buffer, batchNumber);
+  }
+
   await markSeedRun('regions');
   console.debug('✅ done inserting regions');
 }
@@ -144,6 +151,26 @@ async function* fetchRegions(): AsyncGenerator<Region> {
       zoom: 10,
     } as Region;
   }
+}
+
+async function upsertRegionBatch(regions: Region[], batchNumber: number) {
+  await Promise.all(
+    regions.map((region) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { city, state, zip, country, latitude, longitude, zoom, ...rest } =
+        region;
+      return db
+        .insert(regionsSchema)
+        .values(region)
+        .onConflictDoUpdate({
+          target: [regionsSchema.id],
+          set: rest,
+        });
+    })
+  );
+  console.debug(
+    `📦 regions batch ${batchNumber}: upserted=${regions.length} (size=${DEFAULT_REGION_BATCH_SIZE})`
+  );
 }
 
 if (import.meta.main) {
