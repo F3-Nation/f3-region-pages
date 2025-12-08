@@ -5,8 +5,15 @@ import {
   regions as regionsSchema,
   workouts as workoutsSchema,
 } from '../drizzle/schema';
+import { isFresh, loadSeedCache, touchSeedCache } from './seed-cache';
 
 export async function enrichRegions() {
+  const cache = await loadSeedCache();
+  if (!process.env.SEED_FORCE && isFresh(cache.enrichLastRun)) {
+    console.debug('⏭️ skipping enrich-regions; already ran in last 48 hours');
+    return;
+  }
+
   console.debug('🔄 enriching regions...');
   const regions = await db
     .select()
@@ -119,6 +126,7 @@ export async function enrichRegions() {
       })
       .where(eq(regionsSchema.id, region.id));
   }
+  await touchSeedCache('enrichLastRun');
   console.debug('✅ done enriching regions');
 }
 

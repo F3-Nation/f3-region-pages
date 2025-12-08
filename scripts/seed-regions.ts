@@ -5,10 +5,19 @@ import { db } from '../drizzle/db';
 import { regions as regionsSchema } from '../drizzle/schema';
 import { db as f3DataWarehouseDb } from '../drizzle/f3-data-warehouse/db';
 import { orgs as orgsSchema } from '../drizzle/f3-data-warehouse/schema';
+import { isFresh, loadSeedCache, touchSeedCache } from './seed-cache';
 
 type Region = typeof regionsSchema.$inferInsert;
 
 export async function seedRegions() {
+  const cache = await loadSeedCache();
+  if (!process.env.SEED_FORCE && isFresh(cache.regionsLastIngested)) {
+    console.debug(
+      '⏭️ skipping regions seed; already ingested in last 48 hours'
+    );
+    return;
+  }
+
   console.debug('🔄 seeding regions...');
   const regions = fetchRegions();
   let i = 1;
@@ -26,6 +35,7 @@ export async function seedRegions() {
       });
     i++;
   }
+  await touchSeedCache('regionsLastIngested');
   console.debug('✅ done inserting regions');
 }
 

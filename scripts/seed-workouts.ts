@@ -1,4 +1,4 @@
-import { eq, asc, and } from 'drizzle-orm';
+import { eq, asc, and, gt, gte, or, inArray } from 'drizzle-orm';
 
 import { db } from '../drizzle/db';
 import {
@@ -13,29 +13,181 @@ import {
   eventsXEventTypes as eventsXEventTypesSchema,
   eventTypes as eventTypesSchema,
 } from '../drizzle/f3-data-warehouse/schema';
+import { isFresh, loadSeedCache, touchSeedCache } from './seed-cache';
 
 type Workout = typeof workoutsSchema.$inferInsert;
 
-export async function seedWorkouts() {
-  console.debug('🔄 seeding workouts...');
-  const workouts = fetchWorkouts();
-  let i = 1;
-  for await (const workout of workouts) {
-    console.debug(`inserting workouts ${i}: ${workout.name}`);
-    await db
-      .insert(workoutsSchema)
-      .values(workout)
-      .onConflictDoUpdate({
-        target: [workoutsSchema.id],
-        set: workout,
-      });
-    i++;
+type Cursor = {
+  updated: string;
+  id: number;
+};
+
+type SeedOptions = {
+  batchSize: number;
+  maxBatches?: number;
+  updatedAfter?: string;
+};
+
+const DEFAULT_BATCH_SIZE = Number(process.env.WORKOUT_SEED_BATCH_SIZE ?? '250');
+const DEFAULT_MAX_BATCHES = process.env.WORKOUT_SEED_MAX_BATCHES
+  ? Number(process.env.WORKOUT_SEED_MAX_BATCHES)
+  : undefined;
+const DEFAULT_UPDATED_AFTER = process.env.WORKOUT_SEED_UPDATED_AFTER;
+const UPSERT_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.WORKOUT_SEED_UPSERT_CONCURRENCY ?? '8')
+);
+
+export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
+  const cache = await loadSeedCache();
+  if (!process.env.SEED_FORCE && isFresh(cache.workoutsLastIngested)) {
+    console.debug(
+      '⏭️ skipping workouts seed; already ingested in last 48 hours'
+    );
+    return;
   }
-  console.debug('✅ done inserting workouts');
+
+  console.debug('🔄 seeding workouts with batched incremental loader...');
+
+  const options: SeedOptions = {
+    batchSize: Number.isFinite(opts.batchSize)
+      ? Number(opts.batchSize)
+      : DEFAULT_BATCH_SIZE,
+    maxBatches: opts.maxBatches ?? DEFAULT_MAX_BATCHES ?? undefined,
+    updatedAfter: opts.updatedAfter ?? DEFAULT_UPDATED_AFTER ?? undefined,
+  };
+
+  if (Number.isNaN(options.batchSize) || options.batchSize <= 0) {
+    throw new Error(
+      `WORKOUT_SEED_BATCH_SIZE must be a positive number. Got ${opts.batchSize}`
+    );
+  }
+
+  const normalizedUpdatedAfter =
+    options.updatedAfter && !Number.isNaN(Date.parse(options.updatedAfter))
+      ? new Date(options.updatedAfter).toISOString()
+      : undefined;
+  if (options.updatedAfter && !normalizedUpdatedAfter) {
+    console.warn(
+      `⚠️ ignoring invalid WORKOUT_SEED_UPDATED_AFTER="${options.updatedAfter}"`
+    );
+  }
+
+  const supabaseRegionIds = await loadSupabaseRegionIds();
+  console.debug(
+    `📌 seed config -> batchSize=${options.batchSize}, updatedAfter=${normalizedUpdatedAfter ?? 'none'}, maxBatches=${options.maxBatches ?? 'unbounded'}`
+  );
+
+  let cursor: Cursor | null = null;
+  let totalInserted = 0;
+  let batchNumber = 0;
+  while (true) {
+    if (options.maxBatches && batchNumber >= options.maxBatches) {
+      console.debug(
+        `⏭️ stopping after ${batchNumber} batch(es) per maxBatches config`
+      );
+      break;
+    }
+
+    const { workouts, nextCursor, skipped } = await fetchWorkoutsBatch({
+      cursor,
+      batchSize: options.batchSize,
+      updatedAfter: normalizedUpdatedAfter,
+      supabaseRegionIds,
+    });
+
+    if (!workouts.length && !nextCursor) {
+      console.debug('✅ no more workouts to process');
+      break;
+    }
+
+    if (workouts.length) {
+      await upsertWorkouts(workouts);
+      totalInserted += workouts.length;
+    }
+
+    batchNumber++;
+    cursor = nextCursor;
+
+    console.debug(
+      `📦 batch ${batchNumber}: upserted=${workouts.length}, skipped=${skipped.total}` +
+        (skipped.total
+          ? ` (missingType=${skipped.missingType}, missingAo=${skipped.missingAo}, missingRegion=${skipped.missingRegion}, missingLocation=${skipped.missingLocation})`
+          : '')
+    );
+
+    if (!nextCursor) break;
+  }
+
+  console.debug(
+    `✅ done inserting workouts (total upserted: ${totalInserted} across ${batchNumber} batch(es))`
+  );
+  await touchSeedCache('workoutsLastIngested');
 }
 
-async function* fetchWorkouts(): AsyncGenerator<Workout> {
-  const workouts = await f3DataWarehouseDb
+async function loadSupabaseRegionIds() {
+  const regions = await db.select({ id: regionsSchema.id }).from(regionsSchema);
+  return new Set(regions.map((region) => region.id));
+}
+
+async function upsertWorkouts(workouts: Workout[]) {
+  for (let i = 0; i < workouts.length; i += UPSERT_CONCURRENCY) {
+    const chunk = workouts.slice(i, i + UPSERT_CONCURRENCY);
+    await Promise.all(
+      chunk.map((workout) =>
+        db
+          .insert(workoutsSchema)
+          .values(workout)
+          .onConflictDoUpdate({
+            target: [workoutsSchema.id],
+            set: workout,
+          })
+      )
+    );
+  }
+}
+
+type BatchResult = {
+  workouts: Workout[];
+  nextCursor: Cursor | null;
+  skipped: {
+    total: number;
+    missingType: number;
+    missingAo: number;
+    missingRegion: number;
+    missingLocation: number;
+  };
+};
+
+type FetchBatchArgs = {
+  cursor: Cursor | null;
+  batchSize: number;
+  updatedAfter?: string;
+  supabaseRegionIds: Set<string>;
+};
+
+async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
+  const conditions = [eq(eventsSchema.isActive, true)];
+  if (args.updatedAfter) {
+    conditions.push(gte(eventsSchema.updated, args.updatedAfter));
+  }
+
+  if (args.cursor) {
+    conditions.push(
+      or(
+        gt(eventsSchema.updated, args.cursor.updated),
+        and(
+          eq(eventsSchema.updated, args.cursor.updated),
+          gt(eventsSchema.id, args.cursor.id)
+        )
+      )
+    );
+  }
+
+  const whereClause =
+    conditions.length > 1 ? and(...conditions) : conditions[0];
+
+  const baseRows = await f3DataWarehouseDb
     .select({
       id: eventsSchema.id,
       aoId: eventsSchema.orgId,
@@ -45,106 +197,173 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
       startTime: eventsSchema.startTime,
       endTime: eventsSchema.endTime,
       group: eventsSchema.dayOfWeek,
+      updated: eventsSchema.updated,
     })
     .from(eventsSchema)
-    .where(eq(eventsSchema.isActive, true))
-    .orderBy(asc(eventsSchema.name));
+    .where(whereClause)
+    .orderBy(asc(eventsSchema.updated), asc(eventsSchema.id))
+    .limit(args.batchSize);
 
-  for await (const workout of workouts) {
-    const [workoutTypeLkp] = await f3DataWarehouseDb
-      .select()
-      .from(eventsXEventTypesSchema)
-      .where(eq(eventsXEventTypesSchema.eventId, workout.id))
-      .limit(1);
-    if (!workoutTypeLkp) {
-      console.warn(
-        `[WARN] no workout type lkp found for workout ${workout.id} (${workout.name})`
-      );
-      continue;
-    }
-    const [workoutType] = await f3DataWarehouseDb
-      .select()
-      .from(eventTypesSchema)
-      .where(eq(eventTypesSchema.id, workoutTypeLkp.eventTypeId))
-      .limit(1);
-    if (!workoutType) {
-      console.warn(
-        `[WARN] no workout type found for workout ${workout.id} (${workout.name})`
-      );
+  if (!baseRows.length) {
+    return {
+      workouts: [],
+      nextCursor: null,
+      skipped: {
+        total: 0,
+        missingAo: 0,
+        missingLocation: 0,
+        missingRegion: 0,
+        missingType: 0,
+      },
+    };
+  }
+
+  const eventIds = baseRows.map((row) => row.id);
+  const aoIds = Array.from(new Set(baseRows.map((row) => row.aoId)));
+  const locationIds = Array.from(
+    new Set(
+      baseRows
+        .map((row) => row.locationId)
+        .filter((locationId) => locationId !== null)
+    )
+  );
+
+  const eventTypeLookups =
+    eventIds.length > 0
+      ? await f3DataWarehouseDb
+          .select({
+            eventId: eventsXEventTypesSchema.eventId,
+            eventTypeId: eventsXEventTypesSchema.eventTypeId,
+          })
+          .from(eventsXEventTypesSchema)
+          .where(inArray(eventsXEventTypesSchema.eventId, eventIds))
+      : [];
+  const eventTypeIds = Array.from(
+    new Set(eventTypeLookups.map((lookup) => lookup.eventTypeId))
+  );
+  const eventTypes =
+    eventTypeIds.length > 0
+      ? await f3DataWarehouseDb
+          .select({
+            id: eventTypesSchema.id,
+            name: eventTypesSchema.name,
+          })
+          .from(eventTypesSchema)
+          .where(inArray(eventTypesSchema.id, eventTypeIds))
+      : [];
+
+  const aos =
+    aoIds.length > 0
+      ? await f3DataWarehouseDb
+          .select({
+            id: orgsSchema.id,
+            name: orgsSchema.name,
+            parentId: orgsSchema.parentId,
+            orgType: orgsSchema.orgType,
+            isActive: orgsSchema.isActive,
+          })
+          .from(orgsSchema)
+          .where(inArray(orgsSchema.id, aoIds))
+      : [];
+  const regionIds = Array.from(
+    new Set(
+      aos
+        .map((ao) => ao.parentId)
+        .filter((parentId): parentId is number => parentId !== null)
+    )
+  );
+  const regions =
+    regionIds.length > 0
+      ? await f3DataWarehouseDb
+          .select({
+            id: orgsSchema.id,
+            name: orgsSchema.name,
+            orgType: orgsSchema.orgType,
+            isActive: orgsSchema.isActive,
+          })
+          .from(orgsSchema)
+          .where(inArray(orgsSchema.id, regionIds))
+      : [];
+
+  const locations =
+    locationIds.length > 0
+      ? await f3DataWarehouseDb
+          .select({
+            id: locationsSchema.id,
+            latitude: locationsSchema.latitude,
+            longitude: locationsSchema.longitude,
+            address1: locationsSchema.addressStreet,
+            address2: locationsSchema.addressStreet2,
+            city: locationsSchema.addressCity,
+            state: locationsSchema.addressState,
+            zip: locationsSchema.addressZip,
+            country: locationsSchema.addressCountry,
+          })
+          .from(locationsSchema)
+          .where(inArray(locationsSchema.id, locationIds))
+      : [];
+
+  const eventTypeByEvent = new Map(
+    eventTypeLookups.map((lookup) => [lookup.eventId, lookup.eventTypeId])
+  );
+  const eventTypeNameById = new Map(
+    eventTypes.map((type) => [type.id, type.name])
+  );
+  const aoById = new Map(aos.map((ao) => [ao.id, ao]));
+  const regionById = new Map(regions.map((region) => [region.id, region]));
+  const locationById = new Map(
+    locations.map((location) => [location.id, location])
+  );
+
+  const assembled: Workout[] = [];
+  const skipped = {
+    total: 0,
+    missingType: 0,
+    missingAo: 0,
+    missingRegion: 0,
+    missingLocation: 0,
+  };
+
+  for (const row of baseRows) {
+    const eventTypeId = eventTypeByEvent.get(row.id);
+    const eventTypeName = eventTypeId
+      ? eventTypeNameById.get(eventTypeId)
+      : null;
+    if (!eventTypeName) {
+      skipped.total++;
+      skipped.missingType++;
       continue;
     }
 
-    const [ao] = await f3DataWarehouseDb
-      .select()
-      .from(orgsSchema)
-      .where(
-        and(
-          eq(orgsSchema.id, workout.aoId),
-          eq(orgsSchema.orgType, 'ao'),
-          eq(orgsSchema.isActive, true)
-        )
-      )
-      .limit(1);
-    if (!ao) {
-      console.warn(
-        `[WARN] no ao found for workout ${workout.id} (${workout.name})`
-      );
-      continue;
-    }
-    const [f3Region] = await f3DataWarehouseDb
-      .select()
-      .from(orgsSchema)
-      .where(
-        and(
-          eq(orgsSchema.id, ao.parentId ?? 0),
-          eq(orgsSchema.orgType, 'region'),
-          eq(orgsSchema.isActive, true)
-        )
-      )
-      .limit(1);
-    if (!f3Region) {
-      console.warn(
-        `[WARN] no region found in f3 data warehouse for workout ${workout.id} (${workout.name})`
-      );
-      continue;
-    }
-    const [region] = await db
-      .select({
-        id: regionsSchema.id,
-      })
-      .from(regionsSchema)
-      .where(eq(regionsSchema.id, f3Region.id.toString()))
-      .limit(1);
-    if (!region) {
-      console.warn(
-        `[WARN] no region found in supabase for workout ${workout.id} (${workout.name})`
-      );
+    const ao = aoById.get(row.aoId);
+    if (!ao || ao.orgType !== 'ao' || !ao.isActive) {
+      skipped.total++;
+      skipped.missingAo++;
       continue;
     }
 
-    const [location] = await f3DataWarehouseDb
-      .select({
-        latitude: locationsSchema.latitude,
-        longitude: locationsSchema.longitude,
-        address1: locationsSchema.addressStreet,
-        address2: locationsSchema.addressStreet2,
-        city: locationsSchema.addressCity,
-        state: locationsSchema.addressState,
-        zip: locationsSchema.addressZip,
-        country: locationsSchema.addressCountry,
-      })
-      .from(locationsSchema)
-      .where(eq(locationsSchema.id, workout.locationId ?? 0))
-      .limit(1);
+    const region = ao.parentId ? regionById.get(ao.parentId) : null;
+    if (
+      !region ||
+      region.orgType !== 'region' ||
+      !region.isActive ||
+      !args.supabaseRegionIds.has(region.id.toString())
+    ) {
+      skipped.total++;
+      skipped.missingRegion++;
+      continue;
+    }
 
+    const location = row.locationId
+      ? locationById.get(row.locationId)
+      : undefined;
     if (!location) {
-      console.warn(
-        `[WARN] no location found for workout ${workout.id} (${workout.name})`
-      );
+      skipped.total++;
+      skipped.missingLocation++;
       continue;
     }
 
-    const _location = [
+    const formattedLocation = [
       location.address1,
       location.address2,
       location.city,
@@ -157,23 +376,35 @@ async function* fetchWorkouts(): AsyncGenerator<Workout> {
       .join(', ')
       .trim();
 
-    yield {
-      id: workout.id.toString(),
-      regionId: region.id,
-      name: workout.name,
-      time: `${workout.startTime} - ${workout.endTime}`,
-      type: workoutType.name,
-      group: workout.group,
-      notes: workout.notes,
+    const timeRange =
+      row.startTime && row.endTime
+        ? `${row.startTime} - ${row.endTime}`
+        : (row.startTime ?? row.endTime ?? '');
+
+    assembled.push({
+      id: row.id.toString(),
+      regionId: region.id.toString(),
+      name: row.name,
+      time: timeRange,
+      type: eventTypeName,
+      group: row.group,
+      notes: row.notes,
       latitude: location.latitude,
       longitude: location.longitude,
       city: location.city,
       state: location.state,
       zip: location.zip,
       country: location.country,
-      location: _location,
-    } as Workout;
+      location: formattedLocation,
+    });
   }
+
+  const lastRow = baseRows[baseRows.length - 1];
+  const nextCursor = lastRow
+    ? { updated: lastRow.updated, id: lastRow.id }
+    : null;
+
+  return { workouts: assembled, nextCursor, skipped };
 }
 
 if (import.meta.main) {
