@@ -28,7 +28,9 @@ type SeedOptions = {
   updatedAfter?: string;
 };
 
-const DEFAULT_BATCH_SIZE = Number(process.env.WORKOUT_SEED_BATCH_SIZE ?? '250');
+const DEFAULT_BATCH_SIZE = Number(
+  process.env.WORKOUT_SEED_BATCH_SIZE ?? '1000'
+);
 const DEFAULT_MAX_BATCHES = process.env.WORKOUT_SEED_MAX_BATCHES
   ? Number(process.env.WORKOUT_SEED_MAX_BATCHES)
   : undefined;
