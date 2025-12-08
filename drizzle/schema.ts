@@ -3,6 +3,7 @@ import {
   varchar,
   integer,
   doublePrecision,
+  timestamp,
 } from 'drizzle-orm/pg-core';
 
 export const regions = pgTable('regions', {
@@ -40,4 +41,9 @@ export const workouts = pgTable('workouts', {
   zip: varchar(),
   country: varchar(),
   location: varchar(),
+});
+
+export const seedRuns = pgTable('seed_runs', {
+  key: varchar().primaryKey(),
+  lastIngestedAt: timestamp('last_ingested_at', { mode: 'string' }).notNull(),
 });

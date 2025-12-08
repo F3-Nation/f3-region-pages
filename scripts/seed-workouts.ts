@@ -13,7 +13,7 @@ import {
   eventsXEventTypes as eventsXEventTypesSchema,
   eventTypes as eventTypesSchema,
 } from '../drizzle/f3-data-warehouse/schema';
-import { isFresh, loadSeedCache, touchSeedCache } from './seed-cache';
+import { markSeedRun, shouldSkipSeed } from './seed-state';
 
 type Workout = typeof workoutsSchema.$inferInsert;
 
@@ -39,10 +39,11 @@ const UPSERT_CONCURRENCY = Math.max(
 );
 
 export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
-  const cache = await loadSeedCache();
-  if (!process.env.SEED_FORCE && isFresh(cache.workoutsLastIngested)) {
+  const force = !!process.env.SEED_FORCE;
+  const { skip, lastRun } = await shouldSkipSeed('workouts', force);
+  if (skip) {
     console.debug(
-      '⏭️ skipping workouts seed; already ingested in last 48 hours'
+      `⏭️ skipping workouts seed; ran within last 48h (last=${lastRun})`
     );
     return;
   }
@@ -122,7 +123,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
   console.debug(
     `✅ done inserting workouts (total upserted: ${totalInserted} across ${batchNumber} batch(es))`
   );
-  await touchSeedCache('workoutsLastIngested');
+  await markSeedRun('workouts');
 }
 
 async function loadSupabaseRegionIds() {
