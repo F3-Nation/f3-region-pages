@@ -6,6 +6,7 @@ export interface Workout {
   name: string;
   time: string;
   type: string;
+  types?: string[];
   group: string;
   image?: string;
   notes?: string;

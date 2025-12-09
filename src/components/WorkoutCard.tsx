@@ -20,6 +20,12 @@ function getGoogleMapsUrl(workout: WorkoutWithRegion): string {
 
 export function WorkoutCard({ workout }: WorkoutCardProps) {
   const mapsUrl = getGoogleMapsUrl(workout);
+  const workoutTypes =
+    (workout.types && workout.types.length > 0
+      ? workout.types
+      : workout.type
+        ? [workout.type]
+        : []) ?? [];
 
   return (
     <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
@@ -93,26 +99,31 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-3">
-        {workout.type && (
-          <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 flex items-center gap-1">
-            <svg
-              className="w-3 h-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      {workoutTypes.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {workoutTypes.map((type) => (
+            <span
+              key={type}
+              className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 flex items-center gap-1"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
-            {workout.type}
-          </span>
-        )}
-      </div>
+              <svg
+                className="w-3 h-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              {type}
+            </span>
+          ))}
+        </div>
+      )}
 
       <WorkoutNotes notes={workout.notes ?? null} />
     </div>

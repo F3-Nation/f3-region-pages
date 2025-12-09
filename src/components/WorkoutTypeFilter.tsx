@@ -19,16 +19,32 @@ export function WorkoutTypeFilter({
     searchParams.get('type')?.toLowerCase() || null
   );
 
-  // Get unique workout types from the data
-  const workoutTypes = useMemo(() => {
-    const types = new Set<string>();
+  const normalizedTypeOptions = useMemo(() => {
+    const entries = new Map<string, string>();
     workouts.forEach((workout) => {
-      if (workout.type) {
-        types.add(workout.type);
-      }
+      const types =
+        Array.isArray(workout.types) && workout.types.length > 0
+          ? workout.types
+          : workout.type
+            ? [workout.type]
+            : [];
+
+      types.forEach((type) => {
+        const trimmed = type.trim();
+        if (!trimmed) return;
+        const key = trimmed.toLowerCase();
+        if (!entries.has(key)) {
+          entries.set(key, trimmed);
+        }
+      });
     });
-    return Array.from(types).sort();
+    return Array.from(entries.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([key, label]) => ({ key, label }));
   }, [workouts]);
+
+  // Get unique workout types from the data
+  const workoutTypes = normalizedTypeOptions;
 
   // Apply filter based on URL param on mount and when URL changes
   useEffect(() => {
@@ -36,18 +52,23 @@ export function WorkoutTypeFilter({
     setSelectedType(typeParam);
 
     if (typeParam) {
-      const filtered = workouts.filter(
-        (workout) => workout.type?.toLowerCase() === typeParam
-      );
+      const filtered = workouts.filter((workout) => {
+        const types =
+          Array.isArray(workout.types) && workout.types.length > 0
+            ? workout.types
+            : workout.type
+              ? [workout.type]
+              : [];
+        return types.some((type) => type.toLowerCase() === typeParam);
+      });
       onFilteredWorkouts(filtered);
     } else {
       onFilteredWorkouts(workouts);
     }
   }, [searchParams, workouts, onFilteredWorkouts]);
 
-  const handleTypeClick = (type: string) => {
-    const newType =
-      selectedType === type.toLowerCase() ? null : type.toLowerCase();
+  const handleTypeClick = (typeKey: string) => {
+    const newType = selectedType === typeKey ? null : typeKey;
     updateTypeFilter(newType);
   };
 
@@ -85,8 +106,8 @@ export function WorkoutTypeFilter({
         >
           <option value="">All Types</option>
           {workoutTypes.map((type) => (
-            <option key={type} value={type.toLowerCase()}>
-              {type}
+            <option key={type.key} value={type.key}>
+              {type.label}
             </option>
           ))}
         </select>
@@ -95,11 +116,11 @@ export function WorkoutTypeFilter({
       {/* Desktop: Button Grid */}
       <div className="hidden sm:flex sm:flex-wrap gap-2">
         {workoutTypes.map((type) => {
-          const isSelected = selectedType === type.toLowerCase();
+          const isSelected = selectedType === type.key;
           return (
             <button
-              key={type}
-              onClick={() => handleTypeClick(type)}
+              key={type.key}
+              onClick={() => handleTypeClick(type.key)}
               className={`
                                 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
                                 ${
@@ -109,18 +130,13 @@ export function WorkoutTypeFilter({
                                 }
                             `}
             >
-              {type}
+              {type.label}
             </button>
           );
         })}
         {selectedType && (
           <button
-            onClick={() =>
-              handleTypeClick(
-                workoutTypes.find((t) => t.toLowerCase() === selectedType) ||
-                  workoutTypes[0]
-              )
-            }
+            onClick={() => handleTypeClick(selectedType)}
             className="px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/30 transition-colors"
           >
             Clear Filter
