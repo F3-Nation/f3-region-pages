@@ -3,12 +3,12 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.f3.dbmaintenance</string>
+  <string>com.f3.dataingest</string>
 
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/Users/patrick/src/F3-Nation/f3-region-pages/scripts/daily-db-maintenance.sh</string>
+    <string>/Users/patrick/src/F3-Nation/f3-region-pages/scripts/f3-region-pages-data-ingest.sh</string>
   </array>
 
   <key>WorkingDirectory</key>
@@ -18,16 +18,16 @@
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>
-    <integer>3</integer>
+    <integer>10</integer>
     <key>Minute</key>
-    <integer>30</integer>
+    <integer>0</integer>
   </dict>
 
   <!-- launchd logs; per-run logs are written by the script itself. -->
   <key>StandardOutPath</key>
-  <string>/Users/patrick/Library/Logs/f3-db-maintenance/launchd.out</string>
+  <string>/Users/patrick/Library/Logs/f3-region-pages-data-ingest/launchd.out</string>
   <key>StandardErrorPath</key>
-  <string>/Users/patrick/Library/Logs/f3-db-maintenance/launchd.err</string>
+  <string>/Users/patrick/Library/Logs/f3-region-pages-data-ingest/launchd.err</string>
 
   <!-- Set true if you want it to fire immediately after load. -->
   <key>RunAtLoad</key>

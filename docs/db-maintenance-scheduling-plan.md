@@ -1,4 +1,4 @@
-# Daily db prune/seed automation plan (macOS)
+# F3 Region Pages data ingest plan (macOS)
 
 - **Goal**: Run the db prune + seed routines once a day in the background on macOS without manual intervention.
 - **Scope**: Use existing package scripts (`pnpm db:prune:regions`, `pnpm db:prune:workouts`, `pnpm db:seed`), no new behavior.
@@ -11,27 +11,25 @@
 
 ## Approach (recommended: launchd)
 
-- Use the provided shell wrapper to set PATH, load env, cd into the repo, and run the prune/seed commands; logs land in `~/Library/Logs/f3-db-maintenance/`.
+- Use the provided shell wrapper to set PATH, load env, cd into the repo, and run the prune/seed commands; logs land in `~/Library/Logs/f3-region-pages-data-ingest/`.
 - Register a `LaunchAgent` plist in `~/Library/LaunchAgents` with a daily `StartCalendarInterval`.
 - Test by manually starting the job; keep `launchd` disabled/enabled via `launchctl load/unload`.
 
 ## Steps to implement
 
-1. **Runner script** (added) `scripts/daily-db-maintenance.sh`:
+1. **Runner script** (added) `scripts/f3-region-pages-data-ingest.sh`:
    - Sets PATH for Homebrew, loads `.env.local` if present, cds to repo root.
    - Runs `pnpm db:prune:regions`, `pnpm db:prune:workouts`, `pnpm db:seed`.
-   - Logs per-run output to timestamped files under `~/Library/Logs/f3-db-maintenance/`.
+   - Logs per-run output to timestamped files under `~/Library/Logs/f3-region-pages-data-ingest/`.
 
-2. **LaunchAgent plist template** `docs/launchd/com.f3.dbmaintenance.plist.sample`:
-   - Copy to `~/Library/LaunchAgents/com.f3.dbmaintenance.plist`.
-   - Edit paths (ProgramArguments + WorkingDirectory + StandardOut/Error) if your username or repo path differs.
-   - Adjust `StartCalendarInterval` Hour/Minute to desired time.
-   - `RunAtLoad` is false by default; set true only for testing.
+2. **LaunchAgent plist template** `docs/launchd/com.f3.dataingest.plist.sample`:
+   - Fast path: run `./scripts/install-f3-region-pages-data-ingest.sh` to copy the plist to `~/Library/LaunchAgents/com.f3.dataingest.plist`, rewrite paths for your user, and load it.
+   - Manual path: copy to `~/Library/LaunchAgents/com.f3.dataingest.plist`, edit paths (ProgramArguments + WorkingDirectory + StandardOut/Error) if your username or repo path differs, adjust `StartCalendarInterval` Hour/Minute, and set `RunAtLoad` only for testing.
 
 3. **Load and test**
-   - Load once: `launchctl load -w ~/Library/LaunchAgents/com.f3.dbmaintenance.plist`.
-   - Trigger manually to verify: `launchctl start com.f3.dbmaintenance`.
-   - Inspect logs in `~/Library/Logs/f3-db-maintenance/` for success.
+   - Load once: `launchctl load -w ~/Library/LaunchAgents/com.f3.dataingest.plist`.
+   - Trigger manually to verify: `launchctl start com.f3.dataingest`.
+   - Inspect logs in `~/Library/Logs/f3-region-pages-data-ingest/` for success.
    - If you edit the plist, run `launchctl unload ...` then `launchctl load -w ...` to refresh.
 
 4. **Optional variations**

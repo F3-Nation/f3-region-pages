@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Runs daily DB prune + seed using package scripts. Designed for launchd.
+# Runs daily F3 region pages data ingest (prune + seed). Designed for launchd.
 set -euo pipefail
 
 # Ensure common Homebrew bin paths are available for launchd.
 export PATH="/opt/homebrew/bin:/usr/local/bin:${PATH:-}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LOG_DIR="${HOME}/Library/Logs/f3-db-maintenance"
+LOG_DIR="${HOME}/Library/Logs/f3-region-pages-data-ingest"
 TIMESTAMP="$(date +"%Y-%m-%d_%H-%M-%S")"
 LOG_FILE="${LOG_DIR}/run-${TIMESTAMP}.log"
 
