@@ -39,3 +39,9 @@ launchctl load -w "${PLIST_DEST}"
 
 echo "[info] LaunchAgent installed. You can trigger it now with:"
 echo "       launchctl start com.f3.dataingest"
+
+if command -v code >/dev/null 2>&1; then
+  echo "[info] VS Code CLI detected; each run will open ${LOG_DIR} in VS Code."
+else
+  echo "[warn] VS Code CLI 'code' not found. Install it to auto-open ${LOG_DIR} during runs."
+fi

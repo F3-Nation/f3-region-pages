@@ -23,6 +23,15 @@ exec > >(tee -a "${LOG_FILE}") 2>&1
 log "Logging to ${LOG_FILE}"
 log "Repo root: ${REPO_ROOT}"
 
+open_log_dir_in_code() {
+  if command -v code >/dev/null 2>&1; then
+    log "Opening logs in VS Code at ${LOG_DIR}"
+    code "${LOG_DIR}" >/dev/null 2>&1 &
+  else
+    log "VS Code CLI 'code' not found; skipping log directory open"
+  fi
+}
+
 # Load env for DB access if present.
 if [[ -f ".env.local" ]]; then
   log "Loading environment from .env.local"
@@ -33,6 +42,8 @@ if [[ -f ".env.local" ]]; then
 else
   log "No .env.local found; proceeding with defaults"
 fi
+
+open_log_dir_in_code
 
 command -v pnpm >/dev/null 2>&1 || {
   echo "pnpm not found in PATH" >&2
@@ -50,3 +61,4 @@ log "Seeding database"
 pnpm db:seed
 
 log "=== db maintenance end ==="
+open_log_dir_in_code
