@@ -30,9 +30,15 @@ export function WorkoutList({ workouts }: WorkoutListProps) {
 
     // Apply type filter
     if (typeParam) {
-      filtered = filtered.filter(
-        (workout) => workout.type?.toLowerCase() === typeParam
-      );
+      filtered = filtered.filter((workout) => {
+        const types =
+          Array.isArray(workout.types) && workout.types.length > 0
+            ? workout.types
+            : workout.type
+              ? [workout.type]
+              : [];
+        return types.some((type) => type.toLowerCase() === typeParam);
+      });
     }
 
     setFilteredWorkouts(filtered);

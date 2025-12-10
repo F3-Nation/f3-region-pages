@@ -263,6 +263,13 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
   const eventTypeIds = Array.from(
     new Set(eventTypeLookups.map((lookup) => lookup.eventTypeId))
   );
+  const eventTypeIdsByEvent = new Map<number, number[]>();
+  for (const lookup of eventTypeLookups) {
+    if (!eventTypeIdsByEvent.has(lookup.eventId)) {
+      eventTypeIdsByEvent.set(lookup.eventId, []);
+    }
+    eventTypeIdsByEvent.get(lookup.eventId)!.push(lookup.eventTypeId);
+  }
   const eventTypes =
     eventTypeIds.length > 0
       ? await f3DataWarehouseDb
@@ -325,9 +332,6 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
           .where(inArray(locationsSchema.id, locationIds))
       : [];
 
-  const eventTypeByEvent = new Map(
-    eventTypeLookups.map((lookup) => [lookup.eventId, lookup.eventTypeId])
-  );
   const eventTypeNameById = new Map(
     eventTypes.map((type) => [type.id, type.name])
   );
@@ -359,15 +363,16 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       }
     }
 
-    const eventTypeId = eventTypeByEvent.get(row.id);
-    const eventTypeName = eventTypeId
-      ? eventTypeNameById.get(eventTypeId)
-      : null;
-    if (!eventTypeName) {
+    const eventTypeIdsForEvent = eventTypeIdsByEvent.get(row.id) ?? [];
+    const eventTypeNames = eventTypeIdsForEvent
+      .map((id) => eventTypeNameById.get(id))
+      .filter((name): name is string => !!name);
+    if (!eventTypeNames.length) {
       skipped.total++;
       skipped.missingType++;
       continue;
     }
+    const primaryType = eventTypeNames[0];
 
     const ao = aoById.get(row.aoId);
     if (!ao || ao.orgType !== 'ao' || !ao.isActive) {
@@ -426,7 +431,8 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       regionId: region.id.toString(),
       name: row.name,
       time: timeRange,
-      type: eventTypeName,
+      type: primaryType,
+      types: eventTypeNames,
       group: row.group,
       notes: row.notes,
       latitude: location.latitude,

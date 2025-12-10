@@ -162,6 +162,7 @@ const getCachedRegionWorkouts = unstable_cache(
           name: workouts.name,
           time: workouts.time,
           type: workouts.type,
+          types: workouts.types,
           group: workouts.group,
           notes: workouts.notes,
           latitude: workouts.latitude,
@@ -198,9 +199,13 @@ const getCachedRegionWorkouts = unstable_cache(
         const normalizedTime = workout.time
           ? normalizeTimeRange(workout.time)
           : workout.time;
+        const normalizedTypes = Array.isArray(workout.types)
+          ? workout.types.filter(Boolean)
+          : undefined;
         return {
           ...workout,
           time: normalizedTime,
+          types: normalizedTypes,
           region,
         } as WorkoutWithRegion;
       });
