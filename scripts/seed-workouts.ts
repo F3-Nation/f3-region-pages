@@ -226,7 +226,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       e.start_time AS startTime,
       e.end_time AS endTime,
       e.day_of_week AS dayOfWeek,
-      e.updated AS updated,
+      COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') AS updated,
       ARRAY_AGG(DISTINCT et.name ORDER BY et.name) AS eventTypes,
       ao.org_type AS aoOrgType,
       ao.is_active AS aoIsActive,
@@ -248,12 +248,18 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     LEFT JOIN events_x_event_types ex ON ex.event_id = e.id
     LEFT JOIN event_types et ON et.id = ex.event_type_id
     WHERE e.is_active = TRUE
-      AND (@updatedAfter IS NULL OR e.updated >= @updatedAfter)
+      AND (
+        @updatedAfter IS NULL
+        OR COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') >=
+          @updatedAfter
+      )
       AND (
         @cursorUpdated IS NULL
-        OR e.updated > @cursorUpdated
+        OR COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') >
+          @cursorUpdated
         OR (
-          e.updated = @cursorUpdated
+          COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') =
+            @cursorUpdated
           AND @cursorId IS NOT NULL
           AND e.id > @cursorId
         )
@@ -281,7 +287,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       l.address_state,
       l.address_zip,
       l.address_country
-    ORDER BY e.updated ASC, e.id ASC
+    ORDER BY COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') ASC, e.id ASC
     LIMIT @batchSize`,
     {
       batchSize: args.batchSize,
