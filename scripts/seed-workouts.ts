@@ -10,7 +10,7 @@ type Workout = typeof workoutsSchema.$inferInsert;
 
 type Cursor = {
   updated: string;
-  id: string;
+  id: number;
 };
 
 type SeedOptions = {
@@ -20,15 +20,11 @@ type SeedOptions = {
 };
 
 function toIsoString(value: unknown): string | null {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'string') {
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
-  }
   if (value && typeof value === 'object' && 'value' in (value as never)) {
-    const parsed = new Date((value as { value: string }).value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+    return (value as { value: string }).value;
   }
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) return value.toISOString();
   return null;
 }
 
@@ -189,11 +185,12 @@ type FetchBatchArgs = {
 };
 
 async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
-  const updatedAfterParam = args.updatedAfter
-    ? new Date(args.updatedAfter)
-    : null;
-  const cursorUpdatedParam = args.cursor ? new Date(args.cursor.updated) : null;
-  const cursorIdParam = args.cursor ? args.cursor.id : null;
+  const updatedAfterParam = args.updatedAfter ?? null;
+  const cursorUpdatedParam = args.cursor ? args.cursor.updated : null;
+  const cursorIdParam =
+    args.cursor && Number.isFinite(Number(args.cursor.id))
+      ? Number(args.cursor.id)
+      : null;
 
   const baseRows = await runWarehouseQuery<{
     id: string;
@@ -229,7 +226,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       e.start_time AS startTime,
       e.end_time AS endTime,
       e.day_of_week AS dayOfWeek,
-      e.updated,
+      e.updated AS updated,
       ARRAY_AGG(DISTINCT et.name ORDER BY et.name) AS eventTypes,
       ao.org_type AS aoOrgType,
       ao.is_active AS aoIsActive,
@@ -438,16 +435,29 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
   const lastRow = baseRows[baseRows.length - 1];
   const nextCursor = lastRow
     ? (() => {
-        const updatedIso = toIsoString(lastRow.updated);
-        if (!updatedIso) {
+        const updatedIso = toIsoString(lastRow.updated) ?? lastRow.updated;
+        const idNumber = Number(lastRow.id);
+        if (!Number.isFinite(idNumber)) {
           console.warn(
-            `⚠️ skipping cursor update due to invalid updated value for event ${lastRow.id}`
+            `⚠️ skipping cursor update due to invalid id value for event ${lastRow.id}`
           );
           return null;
         }
-        return { updated: updatedIso, id: lastRow.id };
+        return { updated: updatedIso, id: idNumber };
       })()
     : null;
+
+  if (
+    args.cursor &&
+    nextCursor &&
+    args.cursor.updated === nextCursor.updated &&
+    args.cursor.id === nextCursor.id
+  ) {
+    console.warn(
+      `⚠️ cursor did not advance (updated=${nextCursor.updated}, id=${nextCursor.id}); stopping to avoid repeat batches`
+    );
+    return { workouts: assembled, nextCursor: null, skipped };
+  }
 
   return { workouts: assembled, nextCursor, skipped };
 }
