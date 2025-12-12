@@ -1,10 +1,8 @@
-import { eq, asc, and } from 'drizzle-orm';
 import { kebabCase } from 'lodash';
 
 import { db } from '../drizzle/db';
 import { regions as regionsSchema } from '../drizzle/schema';
-import { db as f3DataWarehouseDb } from '../drizzle/f3-data-warehouse/db';
-import { orgs as orgsSchema } from '../drizzle/f3-data-warehouse/schema';
+import { runWarehouseQuery } from '@/lib/warehouse';
 import { currentIngestedAt, isFresh } from './seed-state';
 
 type Region = typeof regionsSchema.$inferInsert;
@@ -141,25 +139,33 @@ function transformInstagramUrl(instagram: string | null): string | null {
 }
 
 async function* fetchRegions(): AsyncGenerator<Region> {
-  const regions = await f3DataWarehouseDb
-    .select({
-      id: orgsSchema.id,
-      name: orgsSchema.name,
-      description: orgsSchema.description,
-      website: orgsSchema.website,
-      logoUrl: orgsSchema.logoUrl,
-      email: orgsSchema.email,
-      facebook: orgsSchema.facebook,
-      twitter: orgsSchema.twitter,
-      instagram: orgsSchema.instagram,
-    })
-    .from(orgsSchema)
-    .where(and(eq(orgsSchema.orgType, 'region'), eq(orgsSchema.isActive, true)))
-    .orderBy(asc(orgsSchema.name));
+  const regions = await runWarehouseQuery<{
+    id: string;
+    name: string;
+    description: string | null;
+    website: string | null;
+    logoUrl: string | null;
+    email: string | null;
+    facebook: string | null;
+    twitter: string | null;
+    instagram: string | null;
+  }>(`SELECT
+    CAST(id AS STRING) AS id,
+    name,
+    description,
+    website,
+    logo_url AS logoUrl,
+    email,
+    facebook,
+    twitter,
+    instagram
+  FROM orgs
+  WHERE org_type = 'region' AND is_active = TRUE
+  ORDER BY name`);
 
   for await (const region of regions) {
     yield {
-      id: region.id.toString(),
+      id: region.id,
       name: region.name,
       description: region.description,
       slug: kebabCase(region.name),

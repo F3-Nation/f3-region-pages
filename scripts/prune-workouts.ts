@@ -5,18 +5,14 @@ import {
   regions as regionsSchema,
   workouts as workoutsSchema,
 } from '../drizzle/schema';
-import { db as f3DataWarehouseDb } from '../drizzle/f3-data-warehouse/db';
-import { events as eventsSchema } from '../drizzle/f3-data-warehouse/schema';
+import { runWarehouseQuery } from '@/lib/warehouse';
 
 export async function pruneWorkouts() {
   console.debug('🔄 pruning workouts no longer in the warehouse...');
 
-  const activeWarehouseWorkouts = await f3DataWarehouseDb
-    .select({
-      id: eventsSchema.id,
-    })
-    .from(eventsSchema)
-    .where(eq(eventsSchema.isActive, true));
+  const activeWarehouseWorkouts = await runWarehouseQuery<{ id: string }>(
+    `SELECT CAST(id AS STRING) AS id FROM events WHERE is_active = TRUE`
+  );
   const activeWorkoutIds = new Set(
     activeWarehouseWorkouts.map((workout) => workout.id.toString())
   );

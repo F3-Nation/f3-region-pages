@@ -1,24 +1,18 @@
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import { db } from '../drizzle/db';
 import {
   regions as regionsSchema,
   workouts as workoutsSchema,
 } from '../drizzle/schema';
-import { db as f3DataWarehouseDb } from '../drizzle/f3-data-warehouse/db';
-import { orgs as orgsSchema } from '../drizzle/f3-data-warehouse/schema';
+import { runWarehouseQuery } from '@/lib/warehouse';
 
 export async function pruneRegions() {
   console.debug('🔄 pruning regions no longer in the warehouse...');
 
-  const activeWarehouseRegions = await f3DataWarehouseDb
-    .select({
-      id: orgsSchema.id,
-    })
-    .from(orgsSchema)
-    .where(
-      and(eq(orgsSchema.orgType, 'region'), eq(orgsSchema.isActive, true))
-    );
+  const activeWarehouseRegions = await runWarehouseQuery<{ id: string }>(
+    `SELECT CAST(id AS STRING) AS id FROM orgs WHERE org_type = 'region' AND is_active = TRUE`
+  );
   const activeRegionIds = new Set(
     activeWarehouseRegions.map((region) => region.id.toString())
   );

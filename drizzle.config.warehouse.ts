@@ -1,19 +1,15 @@
 import { defineConfig } from 'drizzle-kit';
-import { loadEnvConfig } from '@/lib/env';
-
-const { F3_DATA_WAREHOUSE_URL } = loadEnvConfig();
+throw new Error(
+  'drizzle.config.warehouse.ts is deprecated. The warehouse now runs on BigQuery, so use scripts/generate-warehouse-schema.ts for guidance.'
+);
 
 export default defineConfig({
   schema: './drizzle/migrations/warehouse-schema.ts',
   out: './drizzle/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: F3_DATA_WAREHOUSE_URL,
+    url: 'postgres://deprecated-warehouse-config',
   },
   verbose: true,
   strict: true,
-  // This will introspect the existing database and generate schema
-  introspect: {
-    casing: 'camel',
-  },
 });
