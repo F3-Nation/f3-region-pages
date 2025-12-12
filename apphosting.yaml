@@ -17,8 +17,8 @@ env:
       - BUILD
       - RUNTIME
 
-  - variable: F3_DATA_WAREHOUSE_URL
-    secret: f3-data-warehouse-url
+  - variable: BIGQUERY_CREDS
+    secret: bigquery-creds
     availability:
       - BUILD
       - RUNTIME

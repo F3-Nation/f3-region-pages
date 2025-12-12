@@ -1,7 +1,11 @@
-const FRESH_WINDOW_MS = 1000 * 60 * 60 * 48; // 48 hours
+const freshHours = Number(process.env.SEED_FRESH_WINDOW_HOURS ?? '0');
+const FRESH_WINDOW_MS =
+  Number.isFinite(freshHours) && freshHours > 0
+    ? freshHours * 60 * 60 * 1000
+    : 0;
 
 export function isFresh(lastIngestedAt?: string | null, now = Date.now()) {
-  if (!lastIngestedAt) return false;
+  if (!lastIngestedAt || FRESH_WINDOW_MS === 0) return false;
 
   const parsed = Date.parse(lastIngestedAt);
   if (Number.isNaN(parsed)) return false;

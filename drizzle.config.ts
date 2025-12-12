@@ -1,7 +1,7 @@
 import { defineConfig } from 'drizzle-kit';
 import { loadEnvConfig } from '@/lib/env';
 
-const { POSTGRES_URL, F3_DATA_WAREHOUSE_URL } = loadEnvConfig();
+const { POSTGRES_URL } = loadEnvConfig();
 
 export default defineConfig({
   schema: './drizzle/schema.ts',

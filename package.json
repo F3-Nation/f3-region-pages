@@ -38,6 +38,7 @@
     "firebase:deploy": "firebase deploy"
   },
   "dependencies": {
+    "@google-cloud/bigquery": "^8.1.1",
     "dotenv": "^16.4.7",
     "lodash": "^4.17.21",
     "next": "15.1.9",
