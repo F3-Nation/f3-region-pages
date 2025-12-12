@@ -9,7 +9,7 @@ import { currentIngestedAt, isFresh } from './seed-state';
 type Workout = typeof workoutsSchema.$inferInsert;
 
 type Cursor = {
-  updated: string;
+  updatedMicros: number;
   id: number;
 };
 
@@ -19,13 +19,13 @@ type SeedOptions = {
   updatedAfter?: string;
 };
 
-function toIsoString(value: unknown): string | null {
-  if (value && typeof value === 'object' && 'value' in (value as never)) {
-    return (value as { value: string }).value;
-  }
-  if (typeof value === 'string') return value;
-  if (value instanceof Date) return value.toISOString();
-  return null;
+function formatMicrosAsIso(micros: number) {
+  const millis = Math.floor(micros / 1000);
+  const microsRemainder = Math.abs(micros % 1000);
+  const isoMillis = new Date(millis).toISOString().replace('Z', '');
+  const [datePart, timePart] = isoMillis.split('.');
+  const msPart = timePart?.slice(0, 3) ?? '000';
+  return `${datePart}.${msPart}${microsRemainder.toString().padStart(3, '0')}Z`;
 }
 
 const DEFAULT_BATCH_SIZE = Number(
@@ -185,8 +185,14 @@ type FetchBatchArgs = {
 };
 
 async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
-  const updatedAfterParam = args.updatedAfter ?? null;
-  const cursorUpdatedParam = args.cursor ? args.cursor.updated : null;
+  const updatedAfterMicrosParam =
+    args.updatedAfter && !Number.isNaN(Date.parse(args.updatedAfter))
+      ? Math.floor(Date.parse(args.updatedAfter) * 1000)
+      : null;
+  const cursorUpdatedMicrosParam =
+    args.cursor && Number.isFinite(args.cursor.updatedMicros)
+      ? args.cursor.updatedMicros
+      : null;
   const cursorIdParam =
     args.cursor && Number.isFinite(Number(args.cursor.id))
       ? Number(args.cursor.id)
@@ -202,6 +208,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     endTime: string | null;
     dayOfWeek: string | null;
     updated: string | Date;
+    updatedMicros: string | number;
     eventTypes: string[];
     aoOrgType: string | null;
     aoIsActive: boolean | null;
@@ -227,6 +234,9 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       e.end_time AS endTime,
       e.day_of_week AS dayOfWeek,
       COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') AS updated,
+      UNIX_MICROS(
+        COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00')
+      ) AS updatedMicros,
       ARRAY_AGG(DISTINCT et.name ORDER BY et.name) AS eventTypes,
       ao.org_type AS aoOrgType,
       ao.is_active AS aoIsActive,
@@ -249,17 +259,20 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     LEFT JOIN event_types et ON et.id = ex.event_type_id
     WHERE e.is_active = TRUE
       AND (
-        @updatedAfter IS NULL
-        OR COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') >=
-          @updatedAfter
+        @updatedAfterMicros IS NULL
+        OR UNIX_MICROS(
+            COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00')
+          ) >= @updatedAfterMicros
       )
       AND (
-        @cursorUpdated IS NULL
-        OR COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') >
-          @cursorUpdated
+        @cursorUpdatedMicros IS NULL
+        OR UNIX_MICROS(
+            COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00')
+          ) > @cursorUpdatedMicros
         OR (
-          COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') =
-            @cursorUpdated
+          UNIX_MICROS(
+              COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00')
+            ) = @cursorUpdatedMicros
           AND @cursorId IS NOT NULL
           AND e.id > @cursorId
         )
@@ -287,18 +300,20 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       l.address_state,
       l.address_zip,
       l.address_country
-    ORDER BY COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') ASC, e.id ASC
-    LIMIT @batchSize`,
+    ORDER BY
+      UNIX_MICROS(COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00')) ASC,
+      e.id ASC
+      LIMIT @batchSize`,
     {
       batchSize: args.batchSize,
-      updatedAfter: updatedAfterParam,
-      cursorUpdated: cursorUpdatedParam,
+      updatedAfterMicros: updatedAfterMicrosParam,
+      cursorUpdatedMicros: cursorUpdatedMicrosParam,
       cursorId: cursorIdParam,
     },
     {
       batchSize: 'INT64',
-      updatedAfter: 'TIMESTAMP',
-      cursorUpdated: 'TIMESTAMP',
+      updatedAfterMicros: 'INT64',
+      cursorUpdatedMicros: 'INT64',
       cursorId: 'INT64',
     }
   );
@@ -441,26 +456,32 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
   const lastRow = baseRows[baseRows.length - 1];
   const nextCursor = lastRow
     ? (() => {
-        const updatedIso = toIsoString(lastRow.updated) ?? lastRow.updated;
+        const updatedMicros = Number(lastRow.updatedMicros);
         const idNumber = Number(lastRow.id);
+        if (!Number.isFinite(updatedMicros)) {
+          console.warn(
+            `⚠️ skipping cursor update due to invalid updated value for event ${lastRow.id}`
+          );
+          return null;
+        }
         if (!Number.isFinite(idNumber)) {
           console.warn(
             `⚠️ skipping cursor update due to invalid id value for event ${lastRow.id}`
           );
           return null;
         }
-        return { updated: updatedIso, id: idNumber };
+        return { updatedMicros, id: idNumber };
       })()
     : null;
 
   if (
     args.cursor &&
     nextCursor &&
-    args.cursor.updated === nextCursor.updated &&
+    args.cursor.updatedMicros === nextCursor.updatedMicros &&
     args.cursor.id === nextCursor.id
   ) {
     console.warn(
-      `⚠️ cursor did not advance (updated=${nextCursor.updated}, id=${nextCursor.id}); stopping to avoid repeat batches`
+      `⚠️ cursor did not advance (updated=${formatMicrosAsIso(nextCursor.updatedMicros)}, id=${nextCursor.id}); stopping to avoid repeat batches`
     );
     return { workouts: assembled, nextCursor: null, skipped };
   }
