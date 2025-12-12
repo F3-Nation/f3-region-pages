@@ -19,6 +19,19 @@ type SeedOptions = {
   updatedAfter?: string;
 };
 
+function toIsoString(value: unknown): string | null {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'string') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
+  if (value && typeof value === 'object' && 'value' in (value as never)) {
+    const parsed = new Date((value as { value: string }).value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
+  return null;
+}
+
 const DEFAULT_BATCH_SIZE = Number(
   process.env.WORKOUT_SEED_BATCH_SIZE ?? '1000'
 );
@@ -180,7 +193,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     ? new Date(args.updatedAfter)
     : null;
   const cursorUpdatedParam = args.cursor ? new Date(args.cursor.updated) : null;
-  const cursorIdParam = args.cursor ? Number(args.cursor.id) : null;
+  const cursorIdParam = args.cursor ? args.cursor.id : null;
 
   const baseRows = await runWarehouseQuery<{
     id: string;
@@ -217,13 +230,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       e.end_time AS endTime,
       e.day_of_week AS dayOfWeek,
       e.updated,
-      ARRAY(
-        SELECT DISTINCT et.name
-        FROM events_x_event_types ex
-        JOIN event_types et ON et.id = ex.event_type_id
-        WHERE ex.event_id = e.id
-        ORDER BY et.name
-      ) AS eventTypes,
+      ARRAY_AGG(DISTINCT et.name ORDER BY et.name) AS eventTypes,
       ao.org_type AS aoOrgType,
       ao.is_active AS aoIsActive,
       CAST(ao.parent_id AS STRING) AS regionId,
@@ -241,6 +248,8 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     LEFT JOIN orgs ao ON ao.id = e.org_id
     LEFT JOIN orgs region ON region.id = ao.parent_id
     LEFT JOIN locations l ON l.id = e.location_id
+    LEFT JOIN events_x_event_types ex ON ex.event_id = e.id
+    LEFT JOIN event_types et ON et.id = ex.event_type_id
     WHERE e.is_active = TRUE
       AND (@updatedAfter IS NULL OR e.updated >= @updatedAfter)
       AND (
@@ -252,6 +261,29 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
           AND e.id > @cursorId
         )
       )
+    GROUP BY
+      e.id,
+      e.org_id,
+      e.location_id,
+      e.name,
+      e.description,
+      e.start_time,
+      e.end_time,
+      e.day_of_week,
+      e.updated,
+      ao.org_type,
+      ao.is_active,
+      ao.parent_id,
+      region.org_type,
+      region.is_active,
+      l.latitude,
+      l.longitude,
+      l.address_street,
+      l.address_street2,
+      l.address_city,
+      l.address_state,
+      l.address_zip,
+      l.address_country
     ORDER BY e.updated ASC, e.id ASC
     LIMIT @batchSize`,
     {
@@ -259,6 +291,12 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       updatedAfter: updatedAfterParam,
       cursorUpdated: cursorUpdatedParam,
       cursorId: cursorIdParam,
+    },
+    {
+      batchSize: 'INT64',
+      updatedAfter: 'TIMESTAMP',
+      cursorUpdated: 'TIMESTAMP',
+      cursorId: 'INT64',
     }
   );
 
@@ -399,13 +437,16 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
 
   const lastRow = baseRows[baseRows.length - 1];
   const nextCursor = lastRow
-    ? {
-        updated:
-          typeof lastRow.updated === 'string'
-            ? lastRow.updated
-            : new Date(lastRow.updated).toISOString(),
-        id: lastRow.id,
-      }
+    ? (() => {
+        const updatedIso = toIsoString(lastRow.updated);
+        if (!updatedIso) {
+          console.warn(
+            `⚠️ skipping cursor update due to invalid updated value for event ${lastRow.id}`
+          );
+          return null;
+        }
+        return { updated: updatedIso, id: lastRow.id };
+      })()
     : null;
 
   return { workouts: assembled, nextCursor, skipped };

@@ -38,12 +38,14 @@ function getWarehouseConfig(): WarehouseConfig {
 
 export async function runWarehouseQuery<T>(
   query: string,
-  params: Record<string, unknown> = {}
+  params: Record<string, unknown> = {},
+  paramTypes?: Record<string, string>
 ): Promise<T[]> {
   const { client, projectId, dataset, location } = getWarehouseConfig();
   const [job] = await client.createQueryJob({
     query,
     params,
+    types: paramTypes,
     defaultDataset: { datasetId: dataset, projectId },
     location,
   });

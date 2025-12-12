@@ -1,14 +1,15 @@
+import { sql } from 'drizzle-orm';
+
 import { db } from '../drizzle/db';
-import {
-  workouts as workoutsSchema,
-  regions as regionsSchema,
-  seedRuns as seedRunsSchema,
-} from '../drizzle/schema';
 
 async function resetDatabase() {
-  await db.delete(seedRunsSchema);
-  await db.delete(workoutsSchema);
-  await db.delete(regionsSchema);
+  // Use a single TRUNCATE with CASCADE so FK constraints don't block deletes.
+  await db.execute(
+    sql`TRUNCATE TABLE seed_runs, workouts, regions RESTART IDENTITY CASCADE`
+  );
 }
 
-resetDatabase();
+resetDatabase().catch((error) => {
+  console.error('❌ Failed to reset database', error);
+  process.exit(1);
+});
