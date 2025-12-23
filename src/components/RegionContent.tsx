@@ -353,6 +353,24 @@ export function RegionContent({
         </section>
       ) : null}
 
+      {/* Ironclad 2026 Promotion - MuleTown only */}
+      {regionSlug === 'muletown' && (
+        <a
+          href="https://ironclad.f3muletown.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-8 block overflow-hidden rounded-lg border border-gray-700 transition-transform hover:scale-[1.01]"
+        >
+          <Image
+            src="/iron-clad-2026-wide.jpg"
+            alt="Ironclad 2026 - Click to learn more"
+            width={1200}
+            height={400}
+            className="w-full h-auto"
+          />
+        </a>
+      )}
+
       {/* Personalized Maps CTA Banner */}
       <div className="mb-8 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg">
         <div className="flex items-center justify-between">
