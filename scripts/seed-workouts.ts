@@ -1,24 +1,15 @@
-import { eq, asc, and, gt, gte, or, inArray } from 'drizzle-orm';
-
 import { db } from '../drizzle/db';
 import {
   regions as regionsSchema,
   workouts as workoutsSchema,
 } from '../drizzle/schema';
-import { db as f3DataWarehouseDb } from '../drizzle/f3-data-warehouse/db';
-import {
-  orgs as orgsSchema,
-  events as eventsSchema,
-  locations as locationsSchema,
-  eventsXEventTypes as eventsXEventTypesSchema,
-  eventTypes as eventTypesSchema,
-} from '../drizzle/f3-data-warehouse/schema';
+import { runWarehouseQuery } from '@/lib/warehouse';
 import { currentIngestedAt, isFresh } from './seed-state';
 
 type Workout = typeof workoutsSchema.$inferInsert;
 
 type Cursor = {
-  updated: string;
+  updatedMicros: number;
   id: number;
 };
 
@@ -27,6 +18,15 @@ type SeedOptions = {
   maxBatches?: number;
   updatedAfter?: string;
 };
+
+function formatMicrosAsIso(micros: number) {
+  const millis = Math.floor(micros / 1000);
+  const microsRemainder = Math.abs(micros % 1000);
+  const isoMillis = new Date(millis).toISOString().replace('Z', '');
+  const [datePart, timePart] = isoMillis.split('.');
+  const msPart = timePart?.slice(0, 3) ?? '000';
+  return `${datePart}.${msPart}${microsRemainder.toString().padStart(3, '0')}Z`;
+}
 
 const DEFAULT_BATCH_SIZE = Number(
   process.env.WORKOUT_SEED_BATCH_SIZE ?? '1000'
@@ -185,44 +185,138 @@ type FetchBatchArgs = {
 };
 
 async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
-  const conditions = [eq(eventsSchema.isActive, true)];
-  if (args.updatedAfter) {
-    conditions.push(gte(eventsSchema.updated, args.updatedAfter));
-  }
+  const updatedAfterMicrosParam =
+    args.updatedAfter && !Number.isNaN(Date.parse(args.updatedAfter))
+      ? Math.floor(Date.parse(args.updatedAfter) * 1000)
+      : null;
+  const cursorUpdatedMicrosParam =
+    args.cursor && Number.isFinite(args.cursor.updatedMicros)
+      ? args.cursor.updatedMicros
+      : null;
+  const cursorIdParam =
+    args.cursor && Number.isFinite(Number(args.cursor.id))
+      ? Number(args.cursor.id)
+      : null;
 
-  if (args.cursor) {
-    const cursorClause = or(
-      gt(eventsSchema.updated, args.cursor.updated),
-      and(
-        eq(eventsSchema.updated, args.cursor.updated),
-        gt(eventsSchema.id, args.cursor.id)
+  const baseRows = await runWarehouseQuery<{
+    id: string;
+    aoId: string;
+    locationId: string | null;
+    name: string;
+    notes: string | null;
+    startTime: string | null;
+    endTime: string | null;
+    dayOfWeek: string | null;
+    updated: string | Date;
+    updatedMicros: string | number;
+    eventTypes: string[];
+    aoOrgType: string | null;
+    aoIsActive: boolean | null;
+    regionId: string | null;
+    regionOrgType: string | null;
+    regionIsActive: boolean | null;
+    latitude: number | null;
+    longitude: number | null;
+    address1: string | null;
+    address2: string | null;
+    city: string | null;
+    state: string | null;
+    zip: string | null;
+    country: string | null;
+  }>(
+    `SELECT
+      CAST(e.id AS STRING) AS id,
+      CAST(e.org_id AS STRING) AS aoId,
+      CAST(e.location_id AS STRING) AS locationId,
+      e.name,
+      e.description AS notes,
+      e.start_time AS startTime,
+      e.end_time AS endTime,
+      e.day_of_week AS dayOfWeek,
+      COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00') AS updated,
+      UNIX_MICROS(
+        COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00')
+      ) AS updatedMicros,
+      ARRAY_AGG(DISTINCT et.name ORDER BY et.name) AS eventTypes,
+      ao.org_type AS aoOrgType,
+      ao.is_active AS aoIsActive,
+      CAST(ao.parent_id AS STRING) AS regionId,
+      region.org_type AS regionOrgType,
+      region.is_active AS regionIsActive,
+      l.latitude,
+      l.longitude,
+      l.address_street AS address1,
+      l.address_street2 AS address2,
+      l.address_city AS city,
+      l.address_state AS state,
+      l.address_zip AS zip,
+      l.address_country AS country
+    FROM events e
+    LEFT JOIN orgs ao ON ao.id = e.org_id
+    LEFT JOIN orgs region ON region.id = ao.parent_id
+    LEFT JOIN locations l ON l.id = e.location_id
+    LEFT JOIN events_x_event_types ex ON ex.event_id = e.id
+    LEFT JOIN event_types et ON et.id = ex.event_type_id
+    WHERE e.is_active = TRUE
+      AND (
+        @updatedAfterMicros IS NULL
+        OR UNIX_MICROS(
+            COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00')
+          ) >= @updatedAfterMicros
       )
-    );
-
-    if (cursorClause) {
-      conditions.push(cursorClause);
+      AND (
+        @cursorUpdatedMicros IS NULL
+        OR UNIX_MICROS(
+            COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00')
+          ) > @cursorUpdatedMicros
+        OR (
+          UNIX_MICROS(
+              COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00')
+            ) = @cursorUpdatedMicros
+          AND @cursorId IS NOT NULL
+          AND e.id > @cursorId
+        )
+      )
+    GROUP BY
+      e.id,
+      e.org_id,
+      e.location_id,
+      e.name,
+      e.description,
+      e.start_time,
+      e.end_time,
+      e.day_of_week,
+      e.updated,
+      ao.org_type,
+      ao.is_active,
+      ao.parent_id,
+      region.org_type,
+      region.is_active,
+      l.latitude,
+      l.longitude,
+      l.address_street,
+      l.address_street2,
+      l.address_city,
+      l.address_state,
+      l.address_zip,
+      l.address_country
+    ORDER BY
+      UNIX_MICROS(COALESCE(e.updated, TIMESTAMP '1970-01-01 00:00:00+00')) ASC,
+      e.id ASC
+      LIMIT @batchSize`,
+    {
+      batchSize: args.batchSize,
+      updatedAfterMicros: updatedAfterMicrosParam,
+      cursorUpdatedMicros: cursorUpdatedMicrosParam,
+      cursorId: cursorIdParam,
+    },
+    {
+      batchSize: 'INT64',
+      updatedAfterMicros: 'INT64',
+      cursorUpdatedMicros: 'INT64',
+      cursorId: 'INT64',
     }
-  }
-
-  const whereClause =
-    conditions.length > 1 ? and(...conditions) : conditions[0];
-
-  const baseRows = await f3DataWarehouseDb
-    .select({
-      id: eventsSchema.id,
-      aoId: eventsSchema.orgId,
-      locationId: eventsSchema.locationId,
-      name: eventsSchema.name,
-      notes: eventsSchema.description,
-      startTime: eventsSchema.startTime,
-      endTime: eventsSchema.endTime,
-      group: eventsSchema.dayOfWeek,
-      updated: eventsSchema.updated,
-    })
-    .from(eventsSchema)
-    .where(whereClause)
-    .orderBy(asc(eventsSchema.updated), asc(eventsSchema.id))
-    .limit(args.batchSize);
+  );
 
   if (!baseRows.length) {
     return {
@@ -239,107 +333,6 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       },
     };
   }
-
-  const eventIds = baseRows.map((row) => row.id);
-  const aoIds = Array.from(new Set(baseRows.map((row) => row.aoId)));
-  const locationIds = Array.from(
-    new Set(
-      baseRows
-        .map((row) => row.locationId)
-        .filter((locationId) => locationId !== null)
-    )
-  );
-
-  const eventTypeLookups =
-    eventIds.length > 0
-      ? await f3DataWarehouseDb
-          .select({
-            eventId: eventsXEventTypesSchema.eventId,
-            eventTypeId: eventsXEventTypesSchema.eventTypeId,
-          })
-          .from(eventsXEventTypesSchema)
-          .where(inArray(eventsXEventTypesSchema.eventId, eventIds))
-      : [];
-  const eventTypeIds = Array.from(
-    new Set(eventTypeLookups.map((lookup) => lookup.eventTypeId))
-  );
-  const eventTypeIdsByEvent = new Map<number, number[]>();
-  for (const lookup of eventTypeLookups) {
-    if (!eventTypeIdsByEvent.has(lookup.eventId)) {
-      eventTypeIdsByEvent.set(lookup.eventId, []);
-    }
-    eventTypeIdsByEvent.get(lookup.eventId)!.push(lookup.eventTypeId);
-  }
-  const eventTypes =
-    eventTypeIds.length > 0
-      ? await f3DataWarehouseDb
-          .select({
-            id: eventTypesSchema.id,
-            name: eventTypesSchema.name,
-          })
-          .from(eventTypesSchema)
-          .where(inArray(eventTypesSchema.id, eventTypeIds))
-      : [];
-
-  const aos =
-    aoIds.length > 0
-      ? await f3DataWarehouseDb
-          .select({
-            id: orgsSchema.id,
-            name: orgsSchema.name,
-            parentId: orgsSchema.parentId,
-            orgType: orgsSchema.orgType,
-            isActive: orgsSchema.isActive,
-          })
-          .from(orgsSchema)
-          .where(inArray(orgsSchema.id, aoIds))
-      : [];
-  const regionIds = Array.from(
-    new Set(
-      aos
-        .map((ao) => ao.parentId)
-        .filter((parentId): parentId is number => parentId !== null)
-    )
-  );
-  const regions =
-    regionIds.length > 0
-      ? await f3DataWarehouseDb
-          .select({
-            id: orgsSchema.id,
-            name: orgsSchema.name,
-            orgType: orgsSchema.orgType,
-            isActive: orgsSchema.isActive,
-          })
-          .from(orgsSchema)
-          .where(inArray(orgsSchema.id, regionIds))
-      : [];
-
-  const locations =
-    locationIds.length > 0
-      ? await f3DataWarehouseDb
-          .select({
-            id: locationsSchema.id,
-            latitude: locationsSchema.latitude,
-            longitude: locationsSchema.longitude,
-            address1: locationsSchema.addressStreet,
-            address2: locationsSchema.addressStreet2,
-            city: locationsSchema.addressCity,
-            state: locationsSchema.addressState,
-            zip: locationsSchema.addressZip,
-            country: locationsSchema.addressCountry,
-          })
-          .from(locationsSchema)
-          .where(inArray(locationsSchema.id, locationIds))
-      : [];
-
-  const eventTypeNameById = new Map(
-    eventTypes.map((type) => [type.id, type.name])
-  );
-  const aoById = new Map(aos.map((ao) => [ao.id, ao]));
-  const regionById = new Map(regions.map((region) => [region.id, region]));
-  const locationById = new Map(
-    locations.map((location) => [location.id, location])
-  );
 
   const assembled: Workout[] = [];
   const skipped = {
@@ -363,10 +356,9 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       }
     }
 
-    const eventTypeIdsForEvent = eventTypeIdsByEvent.get(row.id) ?? [];
-    const eventTypeNames = eventTypeIdsForEvent
-      .map((id) => eventTypeNameById.get(id))
-      .filter((name): name is string => !!name);
+    const eventTypeNames = (row.eventTypes || []).filter(
+      (name): name is string => !!name
+    );
     if (!eventTypeNames.length) {
       skipped.total++;
       skipped.missingType++;
@@ -374,39 +366,47 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     }
     const primaryType = eventTypeNames[0];
 
-    const ao = aoById.get(row.aoId);
-    if (!ao || ao.orgType !== 'ao' || !ao.isActive) {
+    if (!row.aoOrgType || row.aoOrgType !== 'ao' || row.aoIsActive !== true) {
       skipped.total++;
       skipped.missingAo++;
       continue;
     }
 
-    const region = ao.parentId ? regionById.get(ao.parentId) : null;
-    if (
-      !region ||
-      region.orgType !== 'region' ||
-      !region.isActive ||
-      !args.supabaseRegionIds.has(region.id.toString())
-    ) {
+    const regionId = row.regionId;
+    const regionValid =
+      regionId &&
+      row.regionOrgType === 'region' &&
+      row.regionIsActive === true &&
+      args.supabaseRegionIds.has(regionId);
+
+    if (!regionValid || !regionId) {
       skipped.total++;
       skipped.missingRegion++;
       continue;
     }
 
-    if (!row.group) {
+    if (!row.dayOfWeek) {
       skipped.total++;
       skipped.missingGroup++;
       continue;
     }
 
-    const location = row.locationId
-      ? locationById.get(row.locationId)
-      : undefined;
-    if (!location) {
+    if (!row.locationId) {
       skipped.total++;
       skipped.missingLocation++;
       continue;
     }
+
+    const location = {
+      latitude: row.latitude,
+      longitude: row.longitude,
+      city: row.city,
+      state: row.state,
+      zip: row.zip,
+      country: row.country,
+      address1: row.address1,
+      address2: row.address2,
+    };
 
     const formattedLocation = [
       location.address1,
@@ -426,17 +426,24 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
         ? `${row.startTime} - ${row.endTime}`
         : (row.startTime ?? row.endTime ?? '');
 
+    const latitude = Number.isFinite(Number(location.latitude))
+      ? Number(location.latitude)
+      : null;
+    const longitude = Number.isFinite(Number(location.longitude))
+      ? Number(location.longitude)
+      : null;
+
     assembled.push({
-      id: row.id.toString(),
-      regionId: region.id.toString(),
+      id: row.id,
+      regionId,
       name: row.name,
       time: timeRange,
       type: primaryType,
       types: eventTypeNames,
-      group: row.group,
+      group: row.dayOfWeek,
       notes: row.notes,
-      latitude: location.latitude,
-      longitude: location.longitude,
+      latitude,
+      longitude,
       city: location.city,
       state: location.state,
       zip: location.zip,
@@ -448,8 +455,36 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
 
   const lastRow = baseRows[baseRows.length - 1];
   const nextCursor = lastRow
-    ? { updated: lastRow.updated, id: lastRow.id }
+    ? (() => {
+        const updatedMicros = Number(lastRow.updatedMicros);
+        const idNumber = Number(lastRow.id);
+        if (!Number.isFinite(updatedMicros)) {
+          console.warn(
+            `⚠️ skipping cursor update due to invalid updated value for event ${lastRow.id}`
+          );
+          return null;
+        }
+        if (!Number.isFinite(idNumber)) {
+          console.warn(
+            `⚠️ skipping cursor update due to invalid id value for event ${lastRow.id}`
+          );
+          return null;
+        }
+        return { updatedMicros, id: idNumber };
+      })()
     : null;
+
+  if (
+    args.cursor &&
+    nextCursor &&
+    args.cursor.updatedMicros === nextCursor.updatedMicros &&
+    args.cursor.id === nextCursor.id
+  ) {
+    console.warn(
+      `⚠️ cursor did not advance (updated=${formatMicrosAsIso(nextCursor.updatedMicros)}, id=${nextCursor.id}); stopping to avoid repeat batches`
+    );
+    return { workouts: assembled, nextCursor: null, skipped };
+  }
 
   return { workouts: assembled, nextCursor, skipped };
 }

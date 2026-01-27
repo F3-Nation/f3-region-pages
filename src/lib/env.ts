@@ -8,13 +8,23 @@ export function loadEnvConfig() {
     throw new Error(`POSTGRES_URL is not set in .env.${env}`);
   }
 
-  if (!process.env.F3_DATA_WAREHOUSE_URL) {
-    throw new Error(`F3_DATA_WAREHOUSE_URL is not set in .env.${env}`);
+  if (!process.env.BIGQUERY_CREDS) {
+    throw new Error(`BIGQUERY_CREDS is not set in .env.${env}`);
+  }
+
+  try {
+    JSON.parse(process.env.BIGQUERY_CREDS);
+  } catch (error) {
+    throw new Error(
+      `BIGQUERY_CREDS must be valid JSON in .env.${env}: ${String(error)}`
+    );
   }
 
   return {
     POSTGRES_URL: process.env.POSTGRES_URL,
-    F3_DATA_WAREHOUSE_URL: process.env.F3_DATA_WAREHOUSE_URL,
+    BIGQUERY_CREDS: process.env.BIGQUERY_CREDS,
+    BIGQUERY_DATASET: process.env.BIGQUERY_DATASET,
+    BIGQUERY_LOCATION: process.env.BIGQUERY_LOCATION,
     NODE_ENV: env,
   };
 }
