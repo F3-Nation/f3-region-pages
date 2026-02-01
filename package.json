@@ -35,7 +35,10 @@
     "docker:kill": "scripts/docker-kill.sh",
     "supabase:start": "supabase start",
     "firebase:setup-secrets": "/usr/bin/env bash scripts/firebase-env.sh",
-    "firebase:deploy": "firebase deploy"
+    "firebase:deploy": "firebase deploy",
+    "skills:check": "npx skills check",
+    "skills:update": "npx skills update",
+    "postinstall": "pnpm skills:check"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
