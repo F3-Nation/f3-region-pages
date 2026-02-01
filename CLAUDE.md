@@ -47,6 +47,24 @@ npm run db:generate:migration  # Create migration from schema changes
 - `src/utils/fetchWorkoutLocations.ts` - Central data fetching with caching
 - `src/app/[regionSlug]/page.tsx` - Region detail page with ISR
 - `src/components/ChunkErrorRecovery.tsx` - Client-side error recovery
+- `src/app/api/ingest/route.ts` - Cron endpoint for daily data ingest
+
+## API Endpoints
+
+### POST /api/ingest
+
+Daily data ingest endpoint designed for Upstash QStash cron scheduling.
+
+- **Authentication**: Bearer token via `CRON_SECRET` environment variable
+- **Idempotent**: Runs once per 20-hour window; subsequent calls return early
+- **Function**: Prunes stale data, seeds regions/workouts from warehouse, enriches region metadata
+- **Slack Notifications**: Sends success/failure notifications via Slack bot (skips notifications for noops)
+
+```bash
+# Local testing
+curl -X POST http://localhost:3000/api/ingest \
+  -H "Authorization: Bearer your-secret-key"
+```
 
 ## Agent Skills
 
@@ -62,6 +80,9 @@ Requires Node.js 20.18.2 (see `.nvmrc`). Copy `.env.local.sample` to `.env.local
 
 - `POSTGRES_URL` - Supabase PostgreSQL connection
 - `F3_DATA_WAREHOUSE_URL` - Data warehouse connection
+- `CRON_SECRET` - API key for cron endpoint authentication
+- `SLACK_BOT_AUTH_TOKEN` - Slack bot OAuth token for ingest notifications
+- `SLACK_CHANNEL_ID` - Slack channel ID for ingest notifications
 
 ## TypeScript
 
