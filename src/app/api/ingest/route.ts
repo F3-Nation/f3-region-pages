@@ -47,10 +47,13 @@ async function sendSlackNotification(message: string) {
 
 export async function POST(request: NextRequest) {
   // 1. Verify API key
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = request.headers.get('authorization')?.trim();
+  const cronSecret = process.env.CRON_SECRET?.trim();
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  // Extract token from "Bearer <token>" format (case-insensitive)
+  const token = authHeader?.replace(/^bearer\s+/i, '');
+
+  if (!cronSecret || token !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
