@@ -1,89 +1,63 @@
-# CLAUDE.md
+# CLAUDE.md — LLM Context Index
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> **Meta: This file MUST stay <8kb, compressed, LLM-friendly (not human-friendly). When editing, preserve density. Strip prose, use terse notation. This is a machine-readable index, not documentation.**
 
-## Build & Development Commands
+## Stack
 
-```bash
-npm run dev              # Start Next.js dev server (localhost:3000)
-npm run build            # Production build (~480 static pages)
-npm run lint             # ESLint (Next.js + TypeScript)
-npm run format           # Prettier formatting
-npm run typecheck        # TypeScript type checking
-npm run test             # Run Jest tests
-npm run test:watch       # Jest watch mode
-npm run test:coverage    # Coverage report (70% threshold)
+Next.js 15 / React 19 / TypeScript (strict, `@/*` = `./src/*`) / Drizzle ORM / PostgreSQL (Supabase) / TailwindCSS / Node 20.18.2 (`.nvmrc`)
+
+## Commands
+
+```
+dev              # localhost:3000
+build            # ~480 static pages
+lint | format | typecheck | test | test:watch | test:coverage (70% threshold)
+db:setup:local | db:migrate | db:push | db:seed | db:reset | db:generate:migration
 ```
 
-## Database Commands
+## Architecture
 
-```bash
-npm run db:setup:local   # Complete local setup (Supabase + seed)
-npm run db:migrate       # Apply pending migrations
-npm run db:push          # Sync schema to database
-npm run db:seed          # Run all seed scripts
-npm run db:reset         # Complete database reset
-npm run db:generate:migration  # Create migration from schema changes
-```
-
-## Architecture Overview
-
-**Stack:** Next.js 15, React 19, TypeScript, Drizzle ORM, PostgreSQL (Supabase), TailwindCSS
-
-**Key Patterns:**
-
-1. **React Server Components by default** - Pages in `src/app/` are RSCs. Use `'use client'` only for interactivity.
-
-2. **Build-aware caching** - Cache keys include `NEXT_BUILD_ID` to prevent cross-deployment pollution. See `src/utils/fetchWorkoutLocations.ts` for the pattern using `getBuildAwareCacheKey()`.
-
-3. **Static Generation with ISR** - `generateStaticParams()` in `[regionSlug]/page.tsx` pre-generates all region pages at build time.
-
-4. **Chunk error recovery** - `ChunkErrorRecovery.tsx` auto-reloads on chunk loading failures from stale HTML/fresh assets mismatch.
+- RSC default; `'use client'` only for interactivity
+- Build-aware cache keys via `NEXT_BUILD_ID` — see `src/utils/fetchWorkoutLocations.ts` / `getBuildAwareCacheKey()`
+- ISR via `generateStaticParams()` in `[regionSlug]/page.tsx`
+- Chunk error recovery: `src/components/ChunkErrorRecovery.tsx`
 
 ## Key Files
 
-- `drizzle/schema.ts` - Database schema (regions, workouts, seedRuns tables)
-- `drizzle/db.ts` - Database instance
-- `src/utils/fetchWorkoutLocations.ts` - Central data fetching with caching
-- `src/app/[regionSlug]/page.tsx` - Region detail page with ISR
-- `src/components/ChunkErrorRecovery.tsx` - Client-side error recovery
-- `src/app/api/ingest/route.ts` - Cron endpoint for daily data ingest
-
-## API Endpoints
-
-### POST /api/ingest
-
-Daily data ingest endpoint designed for Upstash QStash cron scheduling.
-
-- **Authentication**: Bearer token via `CRON_SECRET` environment variable
-- **Idempotent**: Runs once per 20-hour window; subsequent calls return early
-- **Function**: Prunes stale data, seeds regions/workouts from warehouse, enriches region metadata
-- **Slack Notifications**: Sends success/failure notifications via Slack bot (skips notifications for noops)
-
-```bash
-# Local testing
-curl -X POST http://localhost:3000/api/ingest \
-  -H "Authorization: Bearer your-secret-key"
+```
+drizzle/schema.ts                        # DB schema (regions, workouts, seedRuns)
+drizzle/db.ts                            # DB instance
+src/utils/fetchWorkoutLocations.ts       # Central data fetch + caching
+src/app/[regionSlug]/page.tsx            # Region page (ISR)
+src/app/api/ingest/route.ts              # Cron ingest endpoint
+src/components/ChunkErrorRecovery.tsx    # Client chunk error recovery
 ```
 
-## Agent Skills
+## API: POST /api/ingest
 
-This repo has Vercel Labs agent skills installed in `.agents/skills/`:
+Upstash QStash cron. Bearer `CRON_SECRET`. Idempotent (20h window). Prunes stale data, seeds regions/workouts from warehouse, enriches metadata. Slack notifications on all outcomes (success/failure/skip). See `.context/slack.md`.
 
-- **vercel-react-best-practices** - 57 React/Next.js performance rules across 8 categories (async waterfalls, bundle optimization, server performance, re-render optimization). Apply when writing or reviewing React components.
+```bash
+curl -X POST http://localhost:3000/api/ingest -H "Authorization: Bearer $CRON_SECRET"
+```
 
-- **vercel-composition-patterns** - React composition patterns for scalable components. Apply when refactoring components with boolean prop proliferation or designing reusable component APIs. Includes React 19 API guidance.
+## Env (`.env.local.sample`)
 
-## Environment Setup
+```
+POSTGRES_URL               # Supabase connection
+F3_DATA_WAREHOUSE_URL      # Warehouse connection
+CRON_SECRET                # Ingest auth
+SLACK_BOT_AUTH_TOKEN        # Bot OAuth token (xoxb-...)
+SLACK_CHANNEL_ID            # Notification channel
+```
 
-Requires Node.js 20.18.2 (see `.nvmrc`). Copy `.env.local.sample` to `.env.local` and configure:
+## Agent Skills (`.agents/skills/`)
 
-- `POSTGRES_URL` - Supabase PostgreSQL connection
-- `F3_DATA_WAREHOUSE_URL` - Data warehouse connection
-- `CRON_SECRET` - API key for cron endpoint authentication
-- `SLACK_BOT_AUTH_TOKEN` - Slack bot OAuth token for ingest notifications
-- `SLACK_CHANNEL_ID` - Slack channel ID for ingest notifications
+- `vercel-react-best-practices` — 57 React/Next.js perf rules (8 categories). Use when writing/reviewing components.
+- `vercel-composition-patterns` — Composition patterns for scalable components. Use for boolean-prop refactors, reusable APIs, React 19 patterns.
 
-## TypeScript
+## Context Index (`.context/`)
 
-Path alias `@/*` maps to `./src/*`. Strict mode enabled.
+| File       | Topic                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------- |
+| `slack.md` | Slack bot integration: `sendSlackNotification`, env vars, notification triggers, warehouse Slack tables |
