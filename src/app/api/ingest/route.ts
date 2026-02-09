@@ -15,8 +15,8 @@ const INGEST_KEY = 'daily-ingest';
 const FRESH_WINDOW_MS = 1000 * 60 * 60 * 20; // 20 hours (safe margin for daily runs)
 
 async function sendSlackNotification(message: string) {
-  const token = process.env.SLACK_BOT_AUTH_TOKEN;
-  const channel = process.env.SLACK_CHANNEL_ID;
+  const token = process.env.SLACK_BOT_AUTH_TOKEN?.trim();
+  const channel = process.env.SLACK_CHANNEL_ID?.trim();
 
   if (!token || !channel) {
     console.warn('Slack credentials not configured, skipping notification');
@@ -38,7 +38,9 @@ async function sendSlackNotification(message: string) {
 
     const result = await response.json();
     if (!result.ok) {
-      console.error('Slack notification failed:', result.error);
+      console.error(
+        `Slack notification failed: ${result.error} (channel: ${channel}, token: ${token ? 'set' : 'unset'})`
+      );
     }
   } catch (error) {
     console.error('Failed to send Slack notification:', error);
