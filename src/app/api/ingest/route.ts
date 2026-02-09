@@ -66,7 +66,9 @@ export async function POST(request: NextRequest) {
   if (lastRun?.lastIngestedAt) {
     const elapsed = Date.now() - Date.parse(lastRun.lastIngestedAt);
     if (elapsed < FRESH_WINDOW_MS) {
-      // Noop - don't send Slack notification
+      await sendSlackNotification(
+        `:hourglass_flowing_sand: F3 Region Pages daily ingest skipped (already ran at ${lastRun.lastIngestedAt})`
+      );
       return NextResponse.json({
         status: 'skipped',
         message: 'Already ingested today',
