@@ -42,4 +42,5 @@ yarn-error.log*
 next-env.d.ts
 
 firebase-debug.log
-pr.md
+pr.md.context/**/logs.json
+.context/logs.json
