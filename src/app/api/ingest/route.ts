@@ -188,10 +188,10 @@ export async function POST(request: NextRequest) {
     );
 
     const {
-      regionsPrunedNames: _rpn,
-      workoutsPrunedNames: _wpn,
-      regionsSeededNames: _rsn,
-      workoutRegionBreakdown: _wrb,
+      regionsPrunedNames: _rpn, // eslint-disable-line @typescript-eslint/no-unused-vars
+      workoutsPrunedNames: _wpn, // eslint-disable-line @typescript-eslint/no-unused-vars
+      regionsSeededNames: _rsn, // eslint-disable-line @typescript-eslint/no-unused-vars
+      workoutRegionBreakdown: _wrb, // eslint-disable-line @typescript-eslint/no-unused-vars
       ...summaryStats
     } = stats;
 
