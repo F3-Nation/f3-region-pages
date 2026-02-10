@@ -35,6 +35,7 @@ export async function pruneWorkouts() {
     .from(workoutsSchema);
 
   let removed = 0;
+  const workoutNames: string[] = [];
   for (const workout of supabaseWorkouts) {
     const missingFromWarehouse = !activeWorkoutIds.has(workout.id);
     const missingRegion = workout.regionId
@@ -51,10 +52,11 @@ export async function pruneWorkouts() {
     );
     await db.delete(workoutsSchema).where(eq(workoutsSchema.id, workout.id));
     removed++;
+    workoutNames.push(workout.name);
   }
 
   console.debug(`✅ pruned ${removed} workout(s)`);
-  return { removed };
+  return { removed, workoutNames };
 }
 
 if (import.meta.main) {

@@ -31,6 +31,7 @@ export async function pruneRegions() {
     .from(regionsSchema);
 
   let removed = 0;
+  const regionNames: string[] = [];
   for (const region of supabaseRegions) {
     if (activeRegionIds.has(region.id)) continue;
 
@@ -40,10 +41,11 @@ export async function pruneRegions() {
       .where(eq(workoutsSchema.regionId, region.id));
     await db.delete(regionsSchema).where(eq(regionsSchema.id, region.id));
     removed++;
+    regionNames.push(region.name);
   }
 
   console.debug(`✅ pruned ${removed} region(s)`);
-  return { removed };
+  return { removed, regionNames };
 }
 
 const importMeta = import.meta as ImportMeta & { main?: boolean };

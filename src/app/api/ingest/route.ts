@@ -105,22 +105,78 @@ export async function POST(request: NextRequest) {
     const stats = {
       durationSec,
       regionsPruned: pruneRegionsStats.removed,
+      regionsPrunedNames: pruneRegionsStats.regionNames,
       workoutsPruned: pruneWorkoutsStats.removed,
+      workoutsPrunedNames: pruneWorkoutsStats.workoutNames,
       regionsSeeded: seedRegionsStats.upserted,
       regionsSkippedFresh: seedRegionsStats.skippedFresh,
+      regionsSeededNames: seedRegionsStats.regionNames,
       workoutsSeeded: seedWorkoutsStats.upserted,
       workoutsSkipped: seedWorkoutsStats.skipped,
       workoutBatches: seedWorkoutsStats.batches,
+      workoutRegionBreakdown: seedWorkoutsStats.regionBreakdown,
       regionsEnriched: enrichRegionsStats.enriched,
     };
 
     const fmt = (n: number) => n.toLocaleString('en-US');
 
+    const capList = (items: string[], max: number) =>
+      items.length <= max
+        ? items.join(', ')
+        : `${items.slice(0, max).join(', ')} _and ${items.length - max} more_`;
+
+    const formatBreakdown = (
+      breakdown: Record<string, number>,
+      max: number
+    ) => {
+      const entries = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
+      const shown = entries.slice(0, max);
+      const lines = shown.map(([name, count]) => `  • ${name}: ${fmt(count)}`);
+      if (entries.length > max) {
+        lines.push(`  • _and ${entries.length - max} more regions_`);
+      }
+      return lines.join('\n');
+    };
+
+    const regionsPrunedLine =
+      stats.regionsPruned > 0
+        ? `*Regions pruned (${fmt(stats.regionsPruned)}):* ${capList(stats.regionsPrunedNames, 10)}`
+        : `*Regions pruned:* 0`;
+
+    const workoutsPrunedLine =
+      stats.workoutsPruned > 0
+        ? `*Workouts pruned (${fmt(stats.workoutsPruned)}):* ${capList(stats.workoutsPrunedNames, 10)}`
+        : `*Workouts pruned:* 0`;
+
+    const regionsSeededLine =
+      stats.regionsSeeded > 0
+        ? `*Regions seeded (${fmt(stats.regionsSeeded)}):* ${capList(stats.regionsSeededNames, 10)}` +
+          (stats.regionsSkippedFresh > 0
+            ? ` (${fmt(stats.regionsSkippedFresh)} skipped fresh)`
+            : '')
+        : `*Regions seeded:* 0` +
+          (stats.regionsSkippedFresh > 0
+            ? ` (${fmt(stats.regionsSkippedFresh)} skipped fresh)`
+            : '');
+
+    const workoutsSeededLine =
+      `*Workouts seeded (${fmt(stats.workoutsSeeded)}):* ${fmt(stats.workoutsSeeded)} in ${fmt(stats.workoutBatches)} batch(es)` +
+      (stats.workoutsSkipped > 0
+        ? ` (${fmt(stats.workoutsSkipped)} skipped)`
+        : '');
+
+    const breakdownSection =
+      Object.keys(stats.workoutRegionBreakdown).length > 0
+        ? '\n' + formatBreakdown(stats.workoutRegionBreakdown, 15)
+        : '';
+
     await sendSlackNotification(
       `:white_check_mark: F3 Region Pages daily ingest completed\n\n` +
         `*Duration:* ${durationSec}s\n` +
-        `*Regions:* ${fmt(stats.regionsPruned)} pruned, ${fmt(stats.regionsSeeded)} seeded (${fmt(stats.regionsSkippedFresh)} skipped fresh)\n` +
-        `*Workouts:* ${fmt(stats.workoutsPruned)} pruned, ${fmt(stats.workoutsSeeded)} seeded (${fmt(stats.workoutsSkipped)} skipped) in ${fmt(stats.workoutBatches)} batch(es)\n` +
+        `${regionsPrunedLine}\n` +
+        `${workoutsPrunedLine}\n` +
+        `${regionsSeededLine}\n` +
+        `${workoutsSeededLine}${breakdownSection}\n` +
         `*Regions enriched:* ${fmt(stats.regionsEnriched)}`
     );
 
