@@ -81,11 +81,15 @@ export async function POST(request: NextRequest) {
 
   // 3. Run ingest
   try {
-    await pruneRegions();
-    await pruneWorkouts();
-    await seedRegions();
-    await seedWorkouts();
-    await enrichRegions();
+    const startTime = Date.now();
+
+    const pruneRegionsStats = await pruneRegions();
+    const pruneWorkoutsStats = await pruneWorkouts();
+    const seedRegionsStats = await seedRegions();
+    const seedWorkoutsStats = await seedWorkouts();
+    const enrichRegionsStats = await enrichRegions();
+
+    const durationSec = Math.round((Date.now() - startTime) / 1000);
 
     // 4. Record successful run
     const now = new Date().toISOString();
@@ -98,14 +102,33 @@ export async function POST(request: NextRequest) {
       });
 
     // 5. Send success notification
+    const stats = {
+      durationSec,
+      regionsPruned: pruneRegionsStats.removed,
+      workoutsPruned: pruneWorkoutsStats.removed,
+      regionsSeeded: seedRegionsStats.upserted,
+      regionsSkippedFresh: seedRegionsStats.skippedFresh,
+      workoutsSeeded: seedWorkoutsStats.upserted,
+      workoutsSkipped: seedWorkoutsStats.skipped,
+      workoutBatches: seedWorkoutsStats.batches,
+      regionsEnriched: enrichRegionsStats.enriched,
+    };
+
+    const fmt = (n: number) => n.toLocaleString('en-US');
+
     await sendSlackNotification(
-      `:white_check_mark: F3 Region Pages daily ingest completed successfully at ${now}`
+      `:white_check_mark: F3 Region Pages daily ingest completed\n\n` +
+        `*Duration:* ${durationSec}s\n` +
+        `*Regions:* ${fmt(stats.regionsPruned)} pruned, ${fmt(stats.regionsSeeded)} seeded (${fmt(stats.regionsSkippedFresh)} skipped fresh)\n` +
+        `*Workouts:* ${fmt(stats.workoutsPruned)} pruned, ${fmt(stats.workoutsSeeded)} seeded (${fmt(stats.workoutsSkipped)} skipped) in ${fmt(stats.workoutBatches)} batch(es)\n` +
+        `*Regions enriched:* ${fmt(stats.regionsEnriched)}`
     );
 
     return NextResponse.json({
       status: 'success',
       message: 'Ingest completed',
       completedAt: now,
+      stats,
     });
   } catch (error) {
     console.error('Ingest failed:', error);

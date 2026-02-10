@@ -72,6 +72,7 @@ export async function seedRegions() {
   console.debug(
     `✅ done inserting regions (upserted=${upserted}, skippedFresh=${skippedFresh})`
   );
+  return { upserted, skippedFresh };
 }
 
 function transformTwitterUrl(twitter: string | null): string | null {
