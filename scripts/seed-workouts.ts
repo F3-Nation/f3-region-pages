@@ -93,6 +93,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
   let totalInserted = 0;
   let totalSkipped = 0;
   let batchNumber = 0;
+  const regionBreakdown: Record<string, number> = {};
   while (true) {
     if (options.maxBatches && batchNumber >= options.maxBatches) {
       console.debug(
@@ -101,7 +102,12 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
       break;
     }
 
-    const { workouts, nextCursor, skipped } = await fetchWorkoutsBatch({
+    const {
+      workouts,
+      nextCursor,
+      regionBreakdown: batchBreakdown,
+      skipped,
+    } = await fetchWorkoutsBatch({
       cursor,
       batchSize: options.batchSize,
       updatedAfter: normalizedUpdatedAfter,
@@ -119,6 +125,10 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     if (workouts.length) {
       await upsertWorkouts(workouts);
       totalInserted += workouts.length;
+    }
+
+    for (const [name, count] of Object.entries(batchBreakdown)) {
+      regionBreakdown[name] = (regionBreakdown[name] ?? 0) + count;
     }
 
     batchNumber++;
@@ -142,6 +152,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     upserted: totalInserted,
     skipped: totalSkipped,
     batches: batchNumber,
+    regionBreakdown,
   };
 }
 
@@ -170,6 +181,7 @@ async function upsertWorkouts(workouts: Workout[]) {
 type BatchResult = {
   workouts: Workout[];
   nextCursor: Cursor | null;
+  regionBreakdown: Record<string, number>;
   skipped: {
     total: number;
     missingType: number;
@@ -235,6 +247,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     return {
       workouts: [],
       nextCursor: null,
+      regionBreakdown: {},
       skipped: {
         total: 0,
         missingAo: 0,
@@ -453,12 +466,20 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     });
   }
 
+  const regionBreakdown: Record<string, number> = {};
+  for (const workout of assembled) {
+    if (!workout.regionId) continue;
+    const regionName =
+      regionById.get(Number(workout.regionId))?.name ?? workout.regionId;
+    regionBreakdown[regionName] = (regionBreakdown[regionName] ?? 0) + 1;
+  }
+
   const lastRow = baseRows[baseRows.length - 1];
   const nextCursor = lastRow
     ? { updated: lastRow.updated, id: lastRow.id }
     : null;
 
-  return { workouts: assembled, nextCursor, skipped };
+  return { workouts: assembled, nextCursor, regionBreakdown, skipped };
 }
 
 if (import.meta.main) {

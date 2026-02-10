@@ -34,6 +34,7 @@ export async function seedRegions() {
   const lastIngestedById = await loadRegionIngestionMap();
   let skippedFresh = 0;
   let upserted = 0;
+  const regionNames: string[] = [];
   const regions = fetchRegions();
   const batchSize = DEFAULT_REGION_BATCH_SIZE;
   const buffer: Region[] = [];
@@ -50,6 +51,9 @@ export async function seedRegions() {
     if (buffer.length >= batchSize) {
       batchNumber++;
       const batchLength = buffer.length;
+      regionNames.push(
+        ...buffer.map((item) => item.name).filter((n): n is string => !!n)
+      );
       await upsertRegionBatch(
         buffer.map((item) => ({ ...item, lastIngestedAt: ingestedAt })),
         batchNumber
@@ -62,6 +66,9 @@ export async function seedRegions() {
   if (buffer.length) {
     batchNumber++;
     const batchLength = buffer.length;
+    regionNames.push(
+      ...buffer.map((item) => item.name).filter((n): n is string => !!n)
+    );
     await upsertRegionBatch(
       buffer.map((item) => ({ ...item, lastIngestedAt: ingestedAt })),
       batchNumber
@@ -72,7 +79,7 @@ export async function seedRegions() {
   console.debug(
     `✅ done inserting regions (upserted=${upserted}, skippedFresh=${skippedFresh})`
   );
-  return { upserted, skippedFresh };
+  return { upserted, skippedFresh, regionNames };
 }
 
 function transformTwitterUrl(twitter: string | null): string | null {
