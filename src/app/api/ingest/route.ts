@@ -180,11 +180,19 @@ export async function POST(request: NextRequest) {
         `*Regions enriched:* ${fmt(stats.regionsEnriched)}`
     );
 
+    const {
+      regionsPrunedNames: _rpn,
+      workoutsPrunedNames: _wpn,
+      regionsSeededNames: _rsn,
+      workoutRegionBreakdown: _wrb,
+      ...summaryStats
+    } = stats;
+
     return NextResponse.json({
       status: 'success',
       message: 'Ingest completed',
       completedAt: now,
-      stats,
+      stats: summaryStats,
     });
   } catch (error) {
     console.error('Ingest failed:', error);
