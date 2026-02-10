@@ -91,6 +91,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
 
   let cursor: Cursor | null = null;
   let totalInserted = 0;
+  let totalSkipped = 0;
   let batchNumber = 0;
   while (true) {
     if (options.maxBatches && batchNumber >= options.maxBatches) {
@@ -121,6 +122,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     }
 
     batchNumber++;
+    totalSkipped += skipped.total;
     cursor = nextCursor;
 
     console.debug(
@@ -136,6 +138,11 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
   console.debug(
     `✅ done inserting workouts (total upserted: ${totalInserted} across ${batchNumber} batch(es))`
   );
+  return {
+    upserted: totalInserted,
+    skipped: totalSkipped,
+    batches: batchNumber,
+  };
 }
 
 async function loadSupabaseRegionIds() {

@@ -54,6 +54,7 @@ export async function pruneWorkouts() {
   }
 
   console.debug(`✅ pruned ${removed} workout(s)`);
+  return { removed };
 }
 
 if (import.meta.main) {

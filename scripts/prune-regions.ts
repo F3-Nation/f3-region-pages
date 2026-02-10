@@ -43,6 +43,7 @@ export async function pruneRegions() {
   }
 
   console.debug(`✅ pruned ${removed} region(s)`);
+  return { removed };
 }
 
 const importMeta = import.meta as ImportMeta & { main?: boolean };

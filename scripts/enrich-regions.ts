@@ -120,6 +120,7 @@ export async function enrichRegions() {
       .where(eq(regionsSchema.id, region.id));
   }
   console.debug('✅ done enriching regions');
+  return { enriched: regions.length };
 }
 
 if (import.meta.main) {
