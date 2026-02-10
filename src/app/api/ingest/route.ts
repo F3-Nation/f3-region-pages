@@ -14,6 +14,9 @@ export const maxDuration = 300; // 5 minutes (requires Vercel Pro)
 const INGEST_KEY = 'daily-ingest';
 const FRESH_WINDOW_MS = 1000 * 60 * 60 * 20; // 20 hours (safe margin for daily runs)
 
+const escapeSlack = (text: string) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 async function sendSlackNotification(message: string) {
   const token = process.env.SLACK_BOT_AUTH_TOKEN?.trim();
   const channel = process.env.SLACK_CHANNEL_ID?.trim();
@@ -120,10 +123,12 @@ export async function POST(request: NextRequest) {
 
     const fmt = (n: number) => n.toLocaleString('en-US');
 
-    const capList = (items: string[], max: number) =>
-      items.length <= max
-        ? items.join(', ')
-        : `${items.slice(0, max).join(', ')} _and ${items.length - max} more_`;
+    const capList = (items: string[], max: number) => {
+      const escaped = items.map(escapeSlack);
+      return escaped.length <= max
+        ? escaped.join(', ')
+        : `${escaped.slice(0, max).join(', ')} _and ${items.length - max} more_`;
+    };
 
     const formatBreakdown = (
       breakdown: Record<string, number>,
@@ -131,7 +136,9 @@ export async function POST(request: NextRequest) {
     ) => {
       const entries = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
       const shown = entries.slice(0, max);
-      const lines = shown.map(([name, count]) => `  • ${name}: ${fmt(count)}`);
+      const lines = shown.map(
+        ([name, count]) => `  • ${escapeSlack(name)}: ${fmt(count)}`
+      );
       if (entries.length > max) {
         lines.push(`  • _and ${entries.length - max} more regions_`);
       }
@@ -199,7 +206,7 @@ export async function POST(request: NextRequest) {
 
     // Send failure notification
     await sendSlackNotification(
-      `:x: F3 Region Pages daily ingest failed: ${String(error)}`
+      `:x: F3 Region Pages daily ingest failed: ${escapeSlack(String(error))}`
     );
 
     return NextResponse.json(
