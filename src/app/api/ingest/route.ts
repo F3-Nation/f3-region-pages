@@ -1,3 +1,4 @@
+import { kebabCase } from 'lodash';
 import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 
@@ -8,6 +9,7 @@ import { pruneWorkouts } from '../../../../scripts/prune-workouts';
 import { seedRegions } from '../../../../scripts/seed-regions';
 import { seedWorkouts } from '../../../../scripts/seed-workouts';
 import { enrichRegions } from '../../../../scripts/enrich-regions';
+import { SITE_CONFIG } from '@/constants';
 
 export const maxDuration = 300; // 5 minutes (requires Vercel Pro)
 
@@ -16,6 +18,11 @@ const FRESH_WINDOW_MS = 1000 * 60 * 60 * 20; // 20 hours (safe margin for daily 
 
 const escapeSlack = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const slackLink = (slug: string, text: string) =>
+  slug
+    ? `<${SITE_CONFIG.url}/${slug}|${escapeSlack(text)}>`
+    : escapeSlack(text);
 
 async function sendSlackNotification(message: string) {
   const token = process.env.SLACK_BOT_AUTH_TOKEN?.trim();
@@ -110,7 +117,7 @@ export async function POST(request: NextRequest) {
       regionsPruned: pruneRegionsStats.removed,
       regionsPrunedNames: pruneRegionsStats.regionNames,
       workoutsPruned: pruneWorkoutsStats.removed,
-      workoutsPrunedNames: pruneWorkoutsStats.workoutNames,
+      workoutsPrunedItems: pruneWorkoutsStats.workouts,
       regionsSeeded: seedRegionsStats.upserted,
       regionsSkippedFresh: seedRegionsStats.skippedFresh,
       regionsSeededNames: seedRegionsStats.regionNames,
@@ -123,11 +130,11 @@ export async function POST(request: NextRequest) {
 
     const fmt = (n: number) => n.toLocaleString('en-US');
 
-    const capList = (items: string[], max: number) => {
-      const escaped = items.map(escapeSlack);
-      return escaped.length <= max
-        ? escaped.join(', ')
-        : `${escaped.slice(0, max).join(', ')} _and ${items.length - max} more_`;
+    const capList = (items: { text: string; slug: string }[], max: number) => {
+      const formatted = items.map((item) => slackLink(item.slug, item.text));
+      return formatted.length <= max
+        ? formatted.join(', ')
+        : `${formatted.slice(0, max).join(', ')} _and ${items.length - max} more_`;
     };
 
     const formatBreakdown = (
@@ -137,7 +144,8 @@ export async function POST(request: NextRequest) {
       const entries = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
       const shown = entries.slice(0, max);
       const lines = shown.map(
-        ([name, count]) => `  • ${escapeSlack(name)}: ${fmt(count)}`
+        ([name, count]) =>
+          `  • ${slackLink(kebabCase(name), name)}: ${fmt(count)}`
       );
       if (entries.length > max) {
         lines.push(`  • _and ${entries.length - max} more regions_`);
@@ -147,17 +155,35 @@ export async function POST(request: NextRequest) {
 
     const regionsPrunedLine =
       stats.regionsPruned > 0
-        ? `*Regions pruned (${fmt(stats.regionsPruned)}):* ${capList(stats.regionsPrunedNames, 10)}`
+        ? `*Regions pruned (${fmt(stats.regionsPruned)}):* ${capList(
+            stats.regionsPrunedNames.map((n) => ({
+              text: n,
+              slug: kebabCase(n),
+            })),
+            10
+          )}`
         : `*Regions pruned:* 0`;
 
     const workoutsPrunedLine =
       stats.workoutsPruned > 0
-        ? `*Workouts pruned (${fmt(stats.workoutsPruned)}):* ${capList(stats.workoutsPrunedNames, 10)}`
+        ? `*Workouts pruned (${fmt(stats.workoutsPruned)}):* ${capList(
+            stats.workoutsPrunedItems.map((w) => ({
+              text: w.name,
+              slug: kebabCase(w.regionName),
+            })),
+            10
+          )}`
         : `*Workouts pruned:* 0`;
 
     const regionsSeededLine =
       stats.regionsSeeded > 0
-        ? `*Regions seeded (${fmt(stats.regionsSeeded)}):* ${capList(stats.regionsSeededNames, 10)}` +
+        ? `*Regions seeded (${fmt(stats.regionsSeeded)}):* ${capList(
+            stats.regionsSeededNames.map((n) => ({
+              text: n,
+              slug: kebabCase(n),
+            })),
+            10
+          )}` +
           (stats.regionsSkippedFresh > 0
             ? ` (${fmt(stats.regionsSkippedFresh)} skipped fresh)`
             : '')
@@ -189,7 +215,7 @@ export async function POST(request: NextRequest) {
 
     const {
       regionsPrunedNames: _rpn, // eslint-disable-line @typescript-eslint/no-unused-vars
-      workoutsPrunedNames: _wpn, // eslint-disable-line @typescript-eslint/no-unused-vars
+      workoutsPrunedItems: _wpi, // eslint-disable-line @typescript-eslint/no-unused-vars
       regionsSeededNames: _rsn, // eslint-disable-line @typescript-eslint/no-unused-vars
       workoutRegionBreakdown: _wrb, // eslint-disable-line @typescript-eslint/no-unused-vars
       ...summaryStats

@@ -22,9 +22,12 @@ export async function pruneWorkouts() {
   );
 
   const supabaseRegions = await db
-    .select({ id: regionsSchema.id })
+    .select({ id: regionsSchema.id, name: regionsSchema.name })
     .from(regionsSchema);
   const supabaseRegionIds = new Set(supabaseRegions.map((region) => region.id));
+  const regionNameById = new Map(
+    supabaseRegions.map((region) => [region.id, region.name])
+  );
 
   const supabaseWorkouts = await db
     .select({
@@ -35,7 +38,7 @@ export async function pruneWorkouts() {
     .from(workoutsSchema);
 
   let removed = 0;
-  const workoutNames: string[] = [];
+  const workouts: { name: string; regionName: string }[] = [];
   for (const workout of supabaseWorkouts) {
     const missingFromWarehouse = !activeWorkoutIds.has(workout.id);
     const missingRegion = workout.regionId
@@ -52,11 +55,16 @@ export async function pruneWorkouts() {
     );
     await db.delete(workoutsSchema).where(eq(workoutsSchema.id, workout.id));
     removed++;
-    workoutNames.push(workout.name);
+    workouts.push({
+      name: workout.name,
+      regionName: workout.regionId
+        ? (regionNameById.get(workout.regionId) ?? '')
+        : '',
+    });
   }
 
   console.debug(`✅ pruned ${removed} workout(s)`);
-  return { removed, workoutNames };
+  return { removed, workouts };
 }
 
 if (import.meta.main) {
