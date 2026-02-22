@@ -319,16 +319,20 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Ingest failed:', error);
 
-    // Persist failure
-    await db
-      .update(ingestRuns)
-      .set({
-        completedAt: new Date().toISOString(),
-        status: 'failure',
-        durationSec: Math.round((Date.now() - Date.parse(startedAt)) / 1000),
-        errorMessage: String(error),
-      })
-      .where(eq(ingestRuns.id, runRow.id));
+    // Persist failure (best-effort — don't let this swallow the original error)
+    try {
+      await db
+        .update(ingestRuns)
+        .set({
+          completedAt: new Date().toISOString(),
+          status: 'failure',
+          durationSec: Math.round((Date.now() - Date.parse(startedAt)) / 1000),
+          errorMessage: String(error),
+        })
+        .where(eq(ingestRuns.id, runRow.id));
+    } catch (persistError) {
+      console.error('Failed to persist ingest failure:', persistError);
+    }
 
     // Send failure notification
     await sendSlackNotification(
