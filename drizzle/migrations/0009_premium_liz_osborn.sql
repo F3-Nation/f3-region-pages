@@ -1,4 +1,4 @@
-CREATE TABLE "ingest_runs" (
+CREATE TABLE IF NOT EXISTS "ingest_runs" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"started_at" timestamp NOT NULL,
 	"completed_at" timestamp,
