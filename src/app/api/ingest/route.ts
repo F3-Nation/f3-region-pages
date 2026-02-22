@@ -145,7 +145,15 @@ export async function POST(request: NextRequest) {
       regionsEnriched: enrichRegionsStats.enriched,
     };
 
-    // 7. Persist full stats to ingestRuns
+    // 7. Get comparison analytics (before persisting success so current run isn't in the window)
+    const comparison = await getIngestComparison({
+      workoutsSeeded: stats.workoutsSeeded,
+      workoutsSkipped: stats.workoutsSkipped,
+      regionsSeeded: stats.regionsSeeded,
+      durationSec: stats.durationSec,
+    });
+
+    // 8. Persist full stats to ingestRuns
     await db
       .update(ingestRuns)
       .set({
@@ -169,14 +177,6 @@ export async function POST(request: NextRequest) {
         workoutRegionBreakdown: JSON.stringify(stats.workoutRegionBreakdown),
       })
       .where(eq(ingestRuns.id, runRow.id));
-
-    // 8. Get comparison analytics
-    const comparison = await getIngestComparison({
-      workoutsSeeded: stats.workoutsSeeded,
-      workoutsSkipped: stats.workoutsSkipped,
-      regionsSeeded: stats.regionsSeeded,
-      durationSec: stats.durationSec,
-    });
 
     // 9. Build Slack message
     const fmt = (n: number) => n.toLocaleString('en-US');
