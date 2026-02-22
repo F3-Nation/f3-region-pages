@@ -2,6 +2,7 @@ import {
   pgTable,
   varchar,
   integer,
+  serial,
   doublePrecision,
   timestamp,
   text,
@@ -50,4 +51,28 @@ export const workouts = pgTable('workouts', {
 export const seedRuns = pgTable('seed_runs', {
   key: varchar().primaryKey(),
   lastIngestedAt: timestamp('last_ingested_at', { mode: 'string' }).notNull(),
+});
+
+export const ingestRuns = pgTable('ingest_runs', {
+  id: serial().primaryKey(),
+  startedAt: timestamp('started_at', { mode: 'string' }).notNull(),
+  completedAt: timestamp('completed_at', { mode: 'string' }),
+  status: varchar({ length: 20 }).notNull(),
+  durationSec: integer('duration_sec'),
+  regionsPruned: integer('regions_pruned'),
+  workoutsPruned: integer('workouts_pruned'),
+  regionsSeeded: integer('regions_seeded'),
+  regionsSkippedFresh: integer('regions_skipped_fresh'),
+  workoutsSeeded: integer('workouts_seeded'),
+  workoutsSkipped: integer('workouts_skipped'),
+  workoutBatches: integer('workout_batches'),
+  workoutsSkippedFresh: integer('workouts_skipped_fresh'),
+  workoutsSkippedMissingType: integer('workouts_skipped_missing_type'),
+  workoutsSkippedMissingAo: integer('workouts_skipped_missing_ao'),
+  workoutsSkippedMissingRegion: integer('workouts_skipped_missing_region'),
+  workoutsSkippedMissingLocation: integer('workouts_skipped_missing_location'),
+  workoutsSkippedMissingGroup: integer('workouts_skipped_missing_group'),
+  regionsEnriched: integer('regions_enriched'),
+  errorMessage: text('error_message'),
+  workoutRegionBreakdown: text('workout_region_breakdown'),
 });

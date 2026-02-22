@@ -1,4 +1,4 @@
-const FRESH_WINDOW_MS = 1000 * 60 * 60 * 48; // 48 hours
+const FRESH_WINDOW_MS = 1000 * 60 * 60 * 168; // 7 days
 
 export function isFresh(lastIngestedAt?: string | null, now = Date.now()) {
   if (!lastIngestedAt) return false;
