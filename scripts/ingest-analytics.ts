@@ -86,10 +86,14 @@ export async function getIngestComparison(
   let flagged = false;
   let message: string | null = null;
   if (sampleSize >= 3 && rollingStddev > 0) {
-    const zScore = Math.abs(current.workoutsSeeded - rollingMean) / rollingStddev;
+    const zScore =
+      Math.abs(current.workoutsSeeded - rollingMean) / rollingStddev;
     if (zScore > 2) {
       flagged = true;
-      const ratio = rollingMean > 0 ? (current.workoutsSeeded / rollingMean).toFixed(1) : '?';
+      const ratio =
+        rollingMean > 0
+          ? (current.workoutsSeeded / rollingMean).toFixed(1)
+          : '?';
       message = `workouts seeded ${current.workoutsSeeded.toLocaleString('en-US')} is ${ratio}x vs ${Math.round(rollingMean).toLocaleString('en-US')} avg (z=${zScore.toFixed(1)})`;
     }
   }
@@ -104,7 +108,12 @@ export async function getIngestComparison(
         }
       : null,
     deltas,
-    rolling: { mean: rollingMean, stddev: rollingStddev, window: windowSize, sampleSize },
+    rolling: {
+      mean: rollingMean,
+      stddev: rollingStddev,
+      window: windowSize,
+      sampleSize,
+    },
     skipRate,
     anomaly: { flagged, message },
   };
