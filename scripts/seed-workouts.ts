@@ -92,6 +92,14 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
   let cursor: Cursor | null = null;
   let totalInserted = 0;
   let totalSkipped = 0;
+  const totalSkipBreakdown = {
+    fresh: 0,
+    missingType: 0,
+    missingAo: 0,
+    missingRegion: 0,
+    missingLocation: 0,
+    missingGroup: 0,
+  };
   let batchNumber = 0;
   const regionBreakdown: Record<string, number> = {};
   while (true) {
@@ -133,6 +141,12 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
 
     batchNumber++;
     totalSkipped += skipped.total;
+    totalSkipBreakdown.fresh += skipped.fresh;
+    totalSkipBreakdown.missingType += skipped.missingType;
+    totalSkipBreakdown.missingAo += skipped.missingAo;
+    totalSkipBreakdown.missingRegion += skipped.missingRegion;
+    totalSkipBreakdown.missingLocation += skipped.missingLocation;
+    totalSkipBreakdown.missingGroup += skipped.missingGroup;
     cursor = nextCursor;
 
     console.debug(
@@ -151,6 +165,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
   return {
     upserted: totalInserted,
     skipped: totalSkipped,
+    skipBreakdown: totalSkipBreakdown,
     batches: batchNumber,
     regionBreakdown,
   };

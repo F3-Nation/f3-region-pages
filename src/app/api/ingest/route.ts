@@ -3,12 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 
 import { db } from '../../../../drizzle/db';
-import { seedRuns } from '../../../../drizzle/schema';
+import { seedRuns, ingestRuns } from '../../../../drizzle/schema';
 import { pruneRegions } from '../../../../scripts/prune-regions';
 import { pruneWorkouts } from '../../../../scripts/prune-workouts';
 import { seedRegions } from '../../../../scripts/seed-regions';
 import { seedWorkouts } from '../../../../scripts/seed-workouts';
 import { enrichRegions } from '../../../../scripts/enrich-regions';
+import { getIngestComparison } from '../../../../scripts/ingest-analytics';
 import { SITE_CONFIG } from '@/constants';
 
 export const maxDuration = 300; // 5 minutes (requires Vercel Pro)
@@ -78,6 +79,14 @@ export async function POST(request: NextRequest) {
   if (lastRun?.lastIngestedAt) {
     const elapsed = Date.now() - Date.parse(lastRun.lastIngestedAt);
     if (elapsed < FRESH_WINDOW_MS) {
+      // Persist skipped run
+      await db.insert(ingestRuns).values({
+        startedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+        status: 'skipped',
+        durationSec: 0,
+      });
+
       await sendSlackNotification(
         `:hourglass_flowing_sand: F3 Region Pages daily ingest skipped (already ran at ${lastRun.lastIngestedAt})`
       );
@@ -89,7 +98,14 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 3. Run ingest
+  // 3. Persist running state
+  const startedAt = new Date().toISOString();
+  const [runRow] = await db
+    .insert(ingestRuns)
+    .values({ startedAt, status: 'running' })
+    .returning({ id: ingestRuns.id });
+
+  // 4. Run ingest
   try {
     const startTime = Date.now();
 
@@ -101,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     const durationSec = Math.round((Date.now() - startTime) / 1000);
 
-    // 4. Record successful run
+    // 5. Record successful run in seedRuns
     const now = new Date().toISOString();
     await db
       .insert(seedRuns)
@@ -111,7 +127,7 @@ export async function POST(request: NextRequest) {
         set: { lastIngestedAt: now },
       });
 
-    // 5. Send success notification
+    // 6. Build stats
     const stats = {
       durationSec,
       regionsPruned: pruneRegionsStats.removed,
@@ -125,9 +141,44 @@ export async function POST(request: NextRequest) {
       workoutsSkipped: seedWorkoutsStats.skipped,
       workoutBatches: seedWorkoutsStats.batches,
       workoutRegionBreakdown: seedWorkoutsStats.regionBreakdown,
+      skipBreakdown: seedWorkoutsStats.skipBreakdown,
       regionsEnriched: enrichRegionsStats.enriched,
     };
 
+    // 7. Get comparison analytics (before persisting success so current run isn't in the window)
+    const comparison = await getIngestComparison({
+      workoutsSeeded: stats.workoutsSeeded,
+      workoutsSkipped: stats.workoutsSkipped,
+      regionsSeeded: stats.regionsSeeded,
+      durationSec: stats.durationSec,
+    });
+
+    // 8. Persist full stats to ingestRuns
+    await db
+      .update(ingestRuns)
+      .set({
+        completedAt: now,
+        status: 'success',
+        durationSec: stats.durationSec,
+        regionsPruned: stats.regionsPruned,
+        workoutsPruned: stats.workoutsPruned,
+        regionsSeeded: stats.regionsSeeded,
+        regionsSkippedFresh: stats.regionsSkippedFresh,
+        workoutsSeeded: stats.workoutsSeeded,
+        workoutsSkipped: stats.workoutsSkipped,
+        workoutBatches: stats.workoutBatches,
+        workoutsSkippedFresh: stats.skipBreakdown.fresh,
+        workoutsSkippedMissingType: stats.skipBreakdown.missingType,
+        workoutsSkippedMissingAo: stats.skipBreakdown.missingAo,
+        workoutsSkippedMissingRegion: stats.skipBreakdown.missingRegion,
+        workoutsSkippedMissingLocation: stats.skipBreakdown.missingLocation,
+        workoutsSkippedMissingGroup: stats.skipBreakdown.missingGroup,
+        regionsEnriched: stats.regionsEnriched,
+        workoutRegionBreakdown: JSON.stringify(stats.workoutRegionBreakdown),
+      })
+      .where(eq(ingestRuns.id, runRow.id));
+
+    // 9. Build Slack message
     const fmt = (n: number) => n.toLocaleString('en-US');
 
     const capList = (items: { text: string; slug: string }[], max: number) => {
@@ -203,6 +254,40 @@ export async function POST(request: NextRequest) {
         ? '\n' + formatBreakdown(stats.workoutRegionBreakdown, 15)
         : '';
 
+    // Skip breakdown line
+    const sb = stats.skipBreakdown;
+    const skipBreakdownLine =
+      stats.workoutsSkipped > 0
+        ? `*Skip breakdown:* fresh=${fmt(sb.fresh)}, missingType=${fmt(sb.missingType)}, missingAo=${fmt(sb.missingAo)}, missingRegion=${fmt(sb.missingRegion)}, missingLocation=${fmt(sb.missingLocation)}, missingGroup=${fmt(sb.missingGroup)}`
+        : '';
+
+    // Comparison lines
+    const comparisonLines: string[] = [];
+    if (comparison.deltas) {
+      const d = comparison.deltas;
+      const sign = d.workoutsSeeded >= 0 ? '+' : '';
+      const pctStr =
+        d.workoutsSeededPct !== 0
+          ? ` (${sign}${d.workoutsSeededPct.toFixed(0)}%)`
+          : '';
+      comparisonLines.push(
+        `*vs last run:* workouts ${sign}${fmt(d.workoutsSeeded)}${pctStr}, skip rate ${(comparison.skipRate * 100).toFixed(1)}%`
+      );
+    }
+    if (comparison.rolling.sampleSize >= 2) {
+      comparisonLines.push(
+        `*${comparison.rolling.sampleSize}-run avg:* ${fmt(Math.round(comparison.rolling.mean))} seeded (stddev ${fmt(Math.round(comparison.rolling.stddev))})`
+      );
+    }
+    if (comparison.anomaly.flagged) {
+      comparisonLines.push(
+        `:warning: *ANOMALY:* ${comparison.anomaly.message}`
+      );
+    }
+
+    const comparisonSection =
+      comparisonLines.length > 0 ? '\n' + comparisonLines.join('\n') : '';
+
     await sendSlackNotification(
       `:white_check_mark: F3 Region Pages daily ingest completed\n\n` +
         `*Duration:* ${durationSec}s\n` +
@@ -210,7 +295,9 @@ export async function POST(request: NextRequest) {
         `${workoutsPrunedLine}\n` +
         `${regionsSeededLine}\n` +
         `${workoutsSeededLine}${breakdownSection}\n` +
-        `*Regions enriched:* ${fmt(stats.regionsEnriched)}`
+        (skipBreakdownLine ? `${skipBreakdownLine}\n` : '') +
+        `*Regions enriched:* ${fmt(stats.regionsEnriched)}` +
+        comparisonSection
     );
 
     const {
@@ -218,6 +305,7 @@ export async function POST(request: NextRequest) {
       workoutsPrunedItems: _wpi, // eslint-disable-line @typescript-eslint/no-unused-vars
       regionsSeededNames: _rsn, // eslint-disable-line @typescript-eslint/no-unused-vars
       workoutRegionBreakdown: _wrb, // eslint-disable-line @typescript-eslint/no-unused-vars
+      skipBreakdown: _sb, // eslint-disable-line @typescript-eslint/no-unused-vars
       ...summaryStats
     } = stats;
 
@@ -226,9 +314,25 @@ export async function POST(request: NextRequest) {
       message: 'Ingest completed',
       completedAt: now,
       stats: summaryStats,
+      comparison,
     });
   } catch (error) {
     console.error('Ingest failed:', error);
+
+    // Persist failure (best-effort — don't let this swallow the original error)
+    try {
+      await db
+        .update(ingestRuns)
+        .set({
+          completedAt: new Date().toISOString(),
+          status: 'failure',
+          durationSec: Math.round((Date.now() - Date.parse(startedAt)) / 1000),
+          errorMessage: String(error),
+        })
+        .where(eq(ingestRuns.id, runRow.id));
+    } catch (persistError) {
+      console.error('Failed to persist ingest failure:', persistError);
+    }
 
     // Send failure notification
     await sendSlackNotification(
