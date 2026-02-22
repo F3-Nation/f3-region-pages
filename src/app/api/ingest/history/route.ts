@@ -3,6 +3,7 @@ import { desc } from 'drizzle-orm';
 
 import { db } from '../../../../../drizzle/db';
 import { ingestRuns } from '../../../../../drizzle/schema';
+import { mean, stddev } from '../../../../../scripts/math-utils';
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')?.trim();
@@ -41,15 +42,6 @@ export async function GET(request: NextRequest) {
     })
     .filter((v): v is number => v != null);
 
-  const mean = (arr: number[]) =>
-    arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-  const stddev = (arr: number[]) => {
-    if (arr.length < 2) return 0;
-    const m = mean(arr);
-    return Math.sqrt(
-      arr.reduce((sum, v) => sum + (v - m) ** 2, 0) / (arr.length - 1)
-    );
-  };
   const p95 = (arr: number[]) => {
     if (arr.length === 0) return 0;
     const sorted = [...arr].sort((a, b) => a - b);

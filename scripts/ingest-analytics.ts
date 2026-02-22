@@ -2,6 +2,7 @@ import { desc, eq } from 'drizzle-orm';
 
 import { db } from '../drizzle/db';
 import { ingestRuns } from '../drizzle/schema';
+import { mean, stddev } from './math-utils';
 
 export type IngestComparison = {
   lastRun: {
@@ -78,23 +79,18 @@ export async function getIngestComparison(
     .filter((v): v is number => v != null);
 
   const sampleSize = values.length;
-  const mean =
-    sampleSize > 0 ? values.reduce((a, b) => a + b, 0) / sampleSize : 0;
-  const variance =
-    sampleSize > 1
-      ? values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (sampleSize - 1)
-      : 0;
-  const stddev = Math.sqrt(variance);
+  const rollingMean = mean(values);
+  const rollingStddev = stddev(values);
 
   // Anomaly detection: >2 stddevs from mean (only if we have enough data)
   let flagged = false;
   let message: string | null = null;
-  if (sampleSize >= 3 && stddev > 0) {
-    const zScore = Math.abs(current.workoutsSeeded - mean) / stddev;
+  if (sampleSize >= 3 && rollingStddev > 0) {
+    const zScore = Math.abs(current.workoutsSeeded - rollingMean) / rollingStddev;
     if (zScore > 2) {
       flagged = true;
-      const ratio = mean > 0 ? (current.workoutsSeeded / mean).toFixed(1) : '?';
-      message = `workouts seeded ${current.workoutsSeeded.toLocaleString('en-US')} is ${ratio}x vs ${Math.round(mean).toLocaleString('en-US')} avg (z=${zScore.toFixed(1)})`;
+      const ratio = rollingMean > 0 ? (current.workoutsSeeded / rollingMean).toFixed(1) : '?';
+      message = `workouts seeded ${current.workoutsSeeded.toLocaleString('en-US')} is ${ratio}x vs ${Math.round(rollingMean).toLocaleString('en-US')} avg (z=${zScore.toFixed(1)})`;
     }
   }
 
@@ -108,7 +104,7 @@ export async function getIngestComparison(
         }
       : null,
     deltas,
-    rolling: { mean, stddev, window: windowSize, sampleSize },
+    rolling: { mean: rollingMean, stddev: rollingStddev, window: windowSize, sampleSize },
     skipRate,
     anomaly: { flagged, message },
   };
