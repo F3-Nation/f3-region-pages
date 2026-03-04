@@ -24,7 +24,7 @@ export async function pruneWorkouts() {
       and(
         eq(eventsSchema.isActive, true),
         eq(orgsSchema.isActive, true),
-        eq(orgsSchema.orgType, 'ao'),
+        eq(orgsSchema.orgType, 'ao')
       )
     );
   const activeWorkoutIds = new Set(
