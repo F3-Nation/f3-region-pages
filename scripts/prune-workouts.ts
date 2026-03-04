@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '../drizzle/db';
 import {
@@ -6,7 +6,10 @@ import {
   workouts as workoutsSchema,
 } from '../drizzle/schema';
 import { db as f3DataWarehouseDb } from '../drizzle/f3-data-warehouse/db';
-import { events as eventsSchema } from '../drizzle/f3-data-warehouse/schema';
+import {
+  events as eventsSchema,
+  orgs as orgsSchema,
+} from '../drizzle/f3-data-warehouse/schema';
 
 export async function pruneWorkouts() {
   console.debug('🔄 pruning workouts no longer in the warehouse...');
@@ -16,7 +19,14 @@ export async function pruneWorkouts() {
       id: eventsSchema.id,
     })
     .from(eventsSchema)
-    .where(eq(eventsSchema.isActive, true));
+    .innerJoin(orgsSchema, eq(eventsSchema.orgId, orgsSchema.id))
+    .where(
+      and(
+        eq(eventsSchema.isActive, true),
+        eq(orgsSchema.isActive, true),
+        eq(orgsSchema.orgType, 'ao'),
+      )
+    );
   const activeWorkoutIds = new Set(
     activeWarehouseWorkouts.map((workout) => workout.id.toString())
   );
