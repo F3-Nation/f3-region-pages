@@ -196,9 +196,7 @@ export async function POST(request: NextRequest) {
         breakdown: Record<string, number>,
         max: number
       ) => {
-        const entries = Object.entries(breakdown).sort(
-          ([, a], [, b]) => b - a
-        );
+        const entries = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
         const shown = entries.slice(0, max);
         const lines = shown.map(
           ([name, count]) =>
