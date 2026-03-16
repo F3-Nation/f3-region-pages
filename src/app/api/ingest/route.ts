@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
       regionsSkippedFresh: seedRegionsStats.skippedFresh,
       regionsSeededNames: seedRegionsStats.regionNames,
       workoutsSeeded: seedWorkoutsStats.upserted,
+      workoutsDeduplicated: seedWorkoutsStats.deduplicated,
       workoutsSkipped: seedWorkoutsStats.skipped,
       workoutBatches: seedWorkoutsStats.batches,
       workoutRegionBreakdown: seedWorkoutsStats.regionBreakdown,

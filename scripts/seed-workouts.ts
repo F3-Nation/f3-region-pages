@@ -91,6 +91,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
 
   let cursor: Cursor | null = null;
   let totalInserted = 0;
+  let totalDeduplicated = 0;
   let totalSkipped = 0;
   const totalSkipBreakdown = {
     fresh: 0,
@@ -114,6 +115,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
       workouts,
       nextCursor,
       regionBreakdown: batchBreakdown,
+      deduplicated: batchDeduplicated,
       skipped,
     } = await fetchWorkoutsBatch({
       cursor,
@@ -140,6 +142,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     }
 
     batchNumber++;
+    totalDeduplicated += batchDeduplicated;
     totalSkipped += skipped.total;
     totalSkipBreakdown.fresh += skipped.fresh;
     totalSkipBreakdown.missingType += skipped.missingType;
@@ -150,7 +153,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     cursor = nextCursor;
 
     console.debug(
-      `📦 batch ${batchNumber}: upserted=${workouts.length}, skipped=${skipped.total}` +
+      `📦 batch ${batchNumber}: upserted=${workouts.length}, deduplicated=${batchDeduplicated}, skipped=${skipped.total}` +
         (skipped.total
           ? ` (missingType=${skipped.missingType}, missingAo=${skipped.missingAo}, missingRegion=${skipped.missingRegion}, missingGroup=${skipped.missingGroup}, missingLocation=${skipped.missingLocation}, fresh=${skipped.fresh})`
           : '')
@@ -160,10 +163,11 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
   }
 
   console.debug(
-    `✅ done inserting workouts (total upserted: ${totalInserted} across ${batchNumber} batch(es))`
+    `✅ done inserting workouts (total upserted: ${totalInserted}, deduplicated: ${totalDeduplicated} across ${batchNumber} batch(es))`
   );
   return {
     upserted: totalInserted,
+    deduplicated: totalDeduplicated,
     skipped: totalSkipped,
     skipBreakdown: totalSkipBreakdown,
     batches: batchNumber,
@@ -197,6 +201,7 @@ type BatchResult = {
   workouts: Workout[];
   nextCursor: Cursor | null;
   regionBreakdown: Record<string, number>;
+  deduplicated: number;
   skipped: {
     total: number;
     missingType: number;
@@ -263,6 +268,7 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       workouts: [],
       nextCursor: null,
       regionBreakdown: {},
+      deduplicated: 0,
       skipped: {
         total: 0,
         missingAo: 0,
@@ -481,8 +487,27 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     });
   }
 
-  const regionBreakdown: Record<string, number> = {};
+  // Deduplicate workouts: warehouse events table has multiple rows per recurring
+  // workout (individual occurrences). Keep only the highest event ID per unique
+  // schedule entry (regionId + name + group + time + location).
+  const dedupMap = new Map<string, Workout>();
   for (const workout of assembled) {
+    const key = `${workout.regionId}|${workout.name}|${workout.group}|${workout.time}|${workout.location}`;
+    const existing = dedupMap.get(key);
+    if (!existing || Number(workout.id) > Number(existing.id)) {
+      dedupMap.set(key, workout);
+    }
+  }
+  const dedupCount = assembled.length - dedupMap.size;
+  if (dedupCount > 0) {
+    console.debug(
+      `🔀 deduplicated ${dedupCount} recurring workout occurrences (${assembled.length} → ${dedupMap.size})`
+    );
+  }
+  const deduplicated = Array.from(dedupMap.values());
+
+  const regionBreakdown: Record<string, number> = {};
+  for (const workout of deduplicated) {
     if (!workout.regionId) continue;
     const regionName =
       regionById.get(Number(workout.regionId))?.name ?? workout.regionId;
@@ -494,7 +519,13 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     ? { updated: lastRow.updated, id: lastRow.id }
     : null;
 
-  return { workouts: assembled, nextCursor, regionBreakdown, skipped };
+  return {
+    workouts: deduplicated,
+    nextCursor,
+    regionBreakdown,
+    deduplicated: dedupCount,
+    skipped,
+  };
 }
 
 if (import.meta.main) {
