@@ -6,7 +6,7 @@ Thank you for your interest in contributing to the F3 Region Pages project! This
 
 - [Node.js](https://nodejs.org/) version 20.18.2 (as specified in `.nvmrc`)
 - [nvm](https://github.com/nvm-sh/nvm) (Node Version Manager)
-- [npm](https://www.npmjs.com/) (Node Package Manager)
+- [pnpm](https://pnpm.io/) (Fast, disk space efficient package manager)
 - [Docker](https://www.docker.com/) (for local database setup)
 
 ## Development Environment Setup
@@ -28,34 +28,34 @@ Thank you for your interest in contributing to the F3 Region Pages project! This
 3. **Install development dependencies**
 
    ```bash
-   npm i -D        # Shorthand for npm install --save-dev
+   pnpm install
    ```
 
 4. **Set up local database**
 
    ```bash
-   npm run db:setup:local    # Starts Supabase, sets up environment, and seeds database
+   pnpm db:setup:local    # Starts Supabase, sets up environment, and seeds database
    ```
 
 5. **Start the development server**
 
    ```bash
-   npm run dev     # Starts Next.js development server
+   pnpm dev     # Starts Next.js development server
    ```
 
    The application will be available at [http://localhost:3000](http://localhost:3000)
 
 ## Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run test` - Run tests
-- `npm run lint` - Run linting
-- `npm run db:reset` - Reset the database
-- `npm run db:migrate` - Run database migrations
-- `npm run db:seed` - Seed the database with initial data
-- `npm run docker:kill` - Stop Docker containers
-- `npm run supabase:start` - Start Supabase locally
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm test` - Run tests
+- `pnpm lint` - Run linting
+- `pnpm db:reset` - Reset the database
+- `pnpm db:migrate` - Run database migrations
+- `pnpm db:seed` - Seed the database with initial data
+- `pnpm docker:kill` - Stop Docker containers
+- `pnpm supabase:start` - Start Supabase locally
 
 ## Workflow
 

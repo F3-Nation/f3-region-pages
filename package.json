@@ -2,7 +2,7 @@
   "name": "f3-region-pages",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": "20.18.2"
   },
@@ -37,8 +37,8 @@
     "supabase:start": "supabase start",
     "firebase:setup-secrets": "/usr/bin/env bash scripts/firebase-env.sh",
     "firebase:deploy": "firebase deploy",
-    "skills:check": "npx skills check",
-    "skills:update": "npx skills update",
+    "skills:check": "pnpm dlx skills check",
+    "skills:update": "pnpm dlx skills update",
     "postinstall": "pnpm skills:check"
   },
   "dependencies": {

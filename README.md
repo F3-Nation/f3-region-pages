@@ -22,7 +22,7 @@ F3 Region Pages is a web application for managing F3 regional content, workouts,
 - **Backend:** Next.js API routes
 - **Database:** PostgreSQL (via Supabase)
 - **ORM:** Drizzle ORM
-- **Testing:** Jest
+- **Testing:** Vitest
 
 ## Getting Started
 
@@ -30,14 +30,14 @@ For detailed setup instructions, please refer to our [contribution guide](./CONT
 
 ### Quick Start
 
-1. Ensure you have the prerequisites installed ([Node.js](https://nodejs.org/), [nvm](https://github.com/nvm-sh/nvm), [npm](https://www.npmjs.com/), and [Docker](https://www.docker.com/))
+1. Ensure you have the prerequisites installed ([Node.js](https://nodejs.org/), [nvm](https://github.com/nvm-sh/nvm), [pnpm](https://pnpm.io/), and [Docker](https://www.docker.com/))
 2. Clone the repository and install dependencies
 3. Set up your local database environment
-4. Start the development server with `npm run dev`
+4. Start the development server with `pnpm dev`
 
 ## Available Scripts
 
-See the [contribution guide](./CONTRIBUTORS.md#available-scripts) for a complete list of npm scripts you can run.
+See the [contribution guide](./CONTRIBUTORS.md#available-scripts) for a complete list of pnpm scripts you can run.
 
 ## Contributing
 
