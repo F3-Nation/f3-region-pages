@@ -70,13 +70,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // 2. Check if already run today (idempotent)
+  // 2. Check if already run today (idempotent, unless ?force=true)
+  const force = request.nextUrl.searchParams.get('force') === 'true';
   const [lastRun] = await db
     .select()
     .from(seedRuns)
     .where(eq(seedRuns.key, INGEST_KEY));
 
-  if (lastRun?.lastIngestedAt) {
+  if (!force && lastRun?.lastIngestedAt) {
     const elapsed = Date.now() - Date.parse(lastRun.lastIngestedAt);
     if (elapsed < FRESH_WINDOW_MS) {
       // Persist skipped run
