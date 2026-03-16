@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-npm run supabase:start
+pnpm supabase:start
 cp .env.local.sample .env.local
-npm run db:reset
-npm run db:migrate
-npm run db:seed
+pnpm db:reset
+pnpm db:migrate
+pnpm db:seed

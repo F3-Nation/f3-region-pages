@@ -1,6 +1,5 @@
-/**
- * @jest-environment jsdom
- */
+// @vitest-environment jsdom
+import { describe, it, expect } from 'vitest';
 import { sanitizeHtml, enrichEmailsInHtml } from './safeHtml';
 
 describe('sanitizeHtml', () => {

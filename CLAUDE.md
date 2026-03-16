@@ -4,14 +4,14 @@
 
 ## Stack
 
-Next.js 15 / React 19 / TypeScript (strict, `@/*` = `./src/*`) / Drizzle ORM / PostgreSQL (Supabase) / TailwindCSS / Node 20.18.2 (`.nvmrc`)
+Next.js 15 / React 19 / TypeScript (strict, `@/*` = `./src/*`) / Drizzle ORM / PostgreSQL (Supabase) / TailwindCSS / Vitest / Node 20.18.2 (`.nvmrc`)
 
 ## Commands
 
 ```
 dev              # localhost:3000
 build            # ~480 static pages
-lint | format | typecheck | test | test:watch | test:coverage (70% threshold)
+lint | format | typecheck | test (vitest run) | test:watch (vitest) | test:coverage (70% threshold)
 db:setup:local | db:migrate | db:push | db:seed | db:reset | db:generate:migration
 ```
 

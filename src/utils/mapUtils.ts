@@ -75,6 +75,23 @@ export function getMapUrl(params: MapParameters): string {
  * @param workouts Array of workout locations
  * @returns Object containing latitude, longitude, and zoom level
  */
+/**
+ * Generates a Google Maps URL for a workout location
+ */
+export function getGoogleMapsUrl(workout: {
+  latitude?: number;
+  longitude?: number;
+  location?: string;
+}): string {
+  const { latitude, longitude } = workout;
+  if (latitude && longitude) {
+    return `https://www.google.com/maps?q=${latitude},${longitude}`;
+  }
+  return `https://www.google.com/maps/search/${encodeURIComponent(
+    workout.location || ''
+  )}`;
+}
+
 export function calculateMapParameters(
   workouts: Array<{
     latitude?: number | null;
