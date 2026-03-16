@@ -13,11 +13,13 @@ export function ChunkErrorRecovery() {
       const message = event.message || '';
       const filename = event.filename || '';
 
-      // Check for chunk loading errors
+      // Check for chunk loading errors (webpack and Vite patterns)
       if (
         message.includes('Loading chunk') ||
         message.includes('ChunkLoadError') ||
-        filename.includes('/_next/static/chunks/')
+        message.includes('Failed to fetch dynamically imported module') ||
+        filename.includes('/_next/static/chunks/') ||
+        filename.includes('/assets/')
       ) {
         console.warn('Chunk loading error detected, reloading page:', message);
         // Force a hard reload to fetch fresh HTML and assets
@@ -34,7 +36,9 @@ export function ChunkErrorRecovery() {
       if (
         message.includes('Loading chunk') ||
         message.includes('ChunkLoadError') ||
-        message.includes('/_next/static/chunks/')
+        message.includes('Failed to fetch dynamically imported module') ||
+        message.includes('/_next/static/chunks/') ||
+        message.includes('/assets/')
       ) {
         console.warn(
           'Chunk loading promise rejection detected, reloading page:',

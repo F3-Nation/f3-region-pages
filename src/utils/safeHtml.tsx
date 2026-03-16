@@ -15,16 +15,22 @@ const ALLOWED_TAGS = [
 const ALLOWED_ATTR = ['href'];
 const ALLOWED_URI_REGEXP = /^(?:(?:https?|mailto|tel):)/i;
 
-// Hook: force target="_blank" and rel="noopener noreferrer" on all <a> tags
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-  if (node.tagName === 'A') {
-    node.setAttribute('target', '_blank');
-    node.setAttribute('rel', 'noopener noreferrer');
-  }
-});
+let hookRegistered = false;
+
+function ensureHook() {
+  if (hookRegistered || typeof window === 'undefined') return;
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.tagName === 'A') {
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+  hookRegistered = true;
+}
 
 export const sanitizeHtml = (html: string | null | undefined): string => {
   if (!html) return '';
+  ensureHook();
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,

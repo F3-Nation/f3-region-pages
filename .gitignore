@@ -19,6 +19,7 @@
 
 # production
 /build
+/.output/
 
 # misc
 .DS_Store
@@ -45,3 +46,4 @@ firebase-debug.log
 pr.md.context/**/logs.json
 .context/logs.json
 pr.md
+/dist/
