@@ -1,4 +1,4 @@
-import { eq, asc, and, gt, gte, or, inArray } from 'drizzle-orm';
+import { eq, asc, and, gt, gte, or, inArray, sql } from 'drizzle-orm';
 
 import { db } from '../drizzle/db';
 import {
@@ -210,12 +210,37 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     if (!nextCursor) break;
   }
 
+  // Final cleanup: remove any pre-existing duplicate rows from prior ingests
+  // that ran before dedup was added. Keep the row with the highest id per
+  // unique schedule identity.
+  const pruned = await db.execute(sql`
+    DELETE FROM workouts
+    WHERE id IN (
+      SELECT id FROM (
+        SELECT id,
+               ROW_NUMBER() OVER (
+                 PARTITION BY region_id, name, "group", time, location
+                 ORDER BY id DESC
+               ) AS rn
+        FROM workouts
+      ) ranked
+      WHERE rn > 1
+    )
+  `);
+  const prunedCount = pruned.rowCount ?? 0;
+  if (prunedCount > 0) {
+    console.debug(
+      `🧹 pruned ${prunedCount} pre-existing duplicate workout row(s)`
+    );
+  }
+
   console.debug(
     `✅ done inserting workouts (total upserted: ${totalInserted}, deduplicated: ${totalDeduplicated} across ${batchNumber} batch(es))`
   );
   return {
     upserted: totalInserted,
     deduplicated: totalDeduplicated,
+    duplicatesPruned: prunedCount,
     skipped: totalSkipped,
     skipBreakdown: totalSkipBreakdown,
     batches: batchNumber,
