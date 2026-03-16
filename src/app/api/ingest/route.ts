@@ -247,6 +247,9 @@ export async function POST(request: NextRequest) {
 
     const workoutsSeededLine =
       `*Workouts seeded (${fmt(stats.workoutsSeeded)}):* ${fmt(stats.workoutsSeeded)} in ${fmt(stats.workoutBatches)} batch(es)` +
+      (stats.workoutsDeduplicated > 0
+        ? ` (${fmt(stats.workoutsDeduplicated)} deduplicated)`
+        : '') +
       (stats.workoutsSkipped > 0
         ? ` (${fmt(stats.workoutsSkipped)} skipped)`
         : '');
