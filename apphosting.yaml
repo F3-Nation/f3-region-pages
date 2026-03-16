@@ -6,6 +6,8 @@ runConfig:
   # concurrency: 80
   # cpu: 1
   # memoryMiB: 512
+  # Cloud Run request timeout (seconds) — replaces Vercel maxDuration
+  requestTimeout: 300
 
 # Environment variables and secrets.
 env:

@@ -12,7 +12,7 @@ import { enrichRegions } from '../../../../scripts/enrich-regions';
 import { getIngestComparison } from '../../../../scripts/ingest-analytics';
 import { SITE_CONFIG } from '@/constants';
 
-export const maxDuration = 300; // 5 minutes (requires Vercel Pro)
+// Cloud Run timeout configured via apphosting.yaml requestTimeout: 300
 
 const INGEST_KEY = 'daily-ingest';
 const FRESH_WINDOW_MS = 1000 * 60 * 60 * 20; // 20 hours (safe margin for daily runs)

@@ -10,11 +10,8 @@ import { eq, sql } from 'drizzle-orm';
 
 // Generate a build-aware cache key to prevent cross-deployment cache pollution
 const getBuildAwareCacheKey = (baseKey: string): string => {
-  // Use build ID from Next.js or fallback to a timestamp-based approach
-  const buildId =
-    process.env.NEXT_BUILD_ID ||
-    process.env.VERCEL_GIT_COMMIT_SHA ||
-    Date.now().toString();
+  // Use git commit SHA from CI or fallback to a timestamp-based approach
+  const buildId = process.env.GITHUB_SHA || Date.now().toString();
   return `${baseKey}-${buildId}`;
 };
 
