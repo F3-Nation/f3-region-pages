@@ -153,16 +153,17 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     const workoutsToUpsert: Workout[] = [];
     const idsToDelete: string[] = [];
     for (const workout of batchWorkouts) {
+      if (!workout.id) continue;
       const key = dedupKey(workout);
       const existing = globalDedupMap.get(key);
-      if (existing) {
+      if (existing && existing.id) {
         batchDeduplicated++;
         if (Number(workout.id) > Number(existing.id)) {
-          idsToDelete.push(existing.id!);
+          idsToDelete.push(existing.id);
           globalDedupMap.set(key, workout);
           workoutsToUpsert.push(workout);
         } else {
-          idsToDelete.push(workout.id!);
+          idsToDelete.push(workout.id);
         }
       } else {
         globalDedupMap.set(key, workout);
