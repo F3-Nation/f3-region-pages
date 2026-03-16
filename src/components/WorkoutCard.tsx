@@ -2,30 +2,16 @@
 
 import { WorkoutWithRegion } from '@/types/Workout';
 import { WorkoutNotes } from './WorkoutNotes';
+import { getGoogleMapsUrl } from '@/utils/mapUtils';
+import { normalizeWorkoutTypes } from '@/utils/workoutFilters';
 
 interface WorkoutCardProps {
   workout: WorkoutWithRegion;
 }
 
-function getGoogleMapsUrl(workout: WorkoutWithRegion): string {
-  const { latitude, longitude } = workout;
-  if (latitude && longitude) {
-    return `https://www.google.com/maps?q=${latitude},${longitude}`;
-  }
-  // Fallback to location search if coordinates not available
-  return `https://www.google.com/maps/search/${encodeURIComponent(
-    workout.location || ''
-  )}`;
-}
-
 export function WorkoutCard({ workout }: WorkoutCardProps) {
   const mapsUrl = getGoogleMapsUrl(workout);
-  const workoutTypes =
-    (workout.types && workout.types.length > 0
-      ? workout.types
-      : workout.type
-        ? [workout.type]
-        : []) ?? [];
+  const workoutTypes = normalizeWorkoutTypes(workout);
 
   return (
     <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { WorkoutCard } from '@/components/WorkoutCard';
 import { WorkoutWithRegion } from '@/types/Workout';
-import { DAYS_ORDER } from '@/utils/workoutSorting';
+import { filterWorkouts, groupWorkoutsByDay } from '@/utils/workoutFilters';
 
 interface WorkoutListProps {
   workouts: WorkoutWithRegion[];
@@ -15,65 +15,14 @@ export function WorkoutList({ workouts }: WorkoutListProps) {
   const [filteredWorkouts, setFilteredWorkouts] = useState(workouts);
   const dayParam = searchParams.get('day')?.toLowerCase();
 
-  // Apply both filters whenever either changes
   useEffect(() => {
     const typeParam = searchParams.get('type')?.toLowerCase();
-
-    let filtered = workouts;
-
-    // Apply day filter
-    if (dayParam) {
-      filtered = filtered.filter(
-        (workout) => workout.group?.toLowerCase() === dayParam
-      );
-    }
-
-    // Apply type filter
-    if (typeParam) {
-      filtered = filtered.filter((workout) => {
-        const types =
-          Array.isArray(workout.types) && workout.types.length > 0
-            ? workout.types
-            : workout.type
-              ? [workout.type]
-              : [];
-        return types.some((type) => type.toLowerCase() === typeParam);
-      });
-    }
-
-    setFilteredWorkouts(filtered);
+    setFilteredWorkouts(filterWorkouts(workouts, dayParam, typeParam));
   }, [workouts, searchParams, dayParam]);
 
-  // Group workouts by day when no day filter is active
-  const groupedWorkouts = dayParam
+  const sortedGroupedWorkouts = dayParam
     ? null
-    : filteredWorkouts.reduce(
-        (acc, workout) => {
-          const day = workout.group || 'Other';
-          if (!acc[day]) acc[day] = [];
-          acc[day].push(workout);
-          return acc;
-        },
-        {} as Record<string, WorkoutWithRegion[]>
-      );
-
-  // Sort grouped workouts by day order (Monday to Sunday) with case-insensitive matching
-  const sortedGroupedWorkouts = groupedWorkouts
-    ? Object.entries(groupedWorkouts).sort(([dayA], [dayB]) => {
-        // Convert to Title Case for matching with DAYS_ORDER
-        const titleCaseA =
-          dayA.charAt(0).toUpperCase() + dayA.slice(1).toLowerCase();
-        const titleCaseB =
-          dayB.charAt(0).toUpperCase() + dayB.slice(1).toLowerCase();
-        const indexA = DAYS_ORDER.indexOf(
-          titleCaseA as (typeof DAYS_ORDER)[number]
-        );
-        const indexB = DAYS_ORDER.indexOf(
-          titleCaseB as (typeof DAYS_ORDER)[number]
-        );
-        return indexA - indexB;
-      })
-    : null;
+    : groupWorkoutsByDay(filteredWorkouts);
 
   return (
     <div>

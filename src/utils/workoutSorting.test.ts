@@ -1,3 +1,12 @@
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterAll,
+  vi,
+} from 'vitest';
 import { sortWorkoutsByDayAndTime } from './workoutSorting';
 import { WorkoutWithRegion } from '@/types/Workout';
 import { Region } from '@/types/Region';
@@ -104,35 +113,17 @@ const createWorkout = (
 };
 
 describe('sortWorkoutsByDayAndTime', () => {
-  let originalDate: typeof Date;
-  let originalConsoleError: typeof console.error;
-  let mockCurrentDate: string = MOCK_DATE;
-
   beforeAll(() => {
-    originalDate = global.Date;
-    global.Date = class extends Date {
-      constructor(date?: string) {
-        if (date) {
-          super(date);
-        } else {
-          super(mockCurrentDate);
-        }
-      }
-      static now() {
-        return new Date(mockCurrentDate).getTime();
-      }
-    } as typeof Date;
-
-    originalConsoleError = console.error;
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(MOCK_DATE));
   });
 
   beforeEach(() => {
-    mockCurrentDate = MOCK_DATE;
+    vi.setSystemTime(new Date(MOCK_DATE));
   });
 
   afterAll(() => {
-    global.Date = originalDate;
-    console.error = originalConsoleError;
+    vi.useRealTimers();
   });
 
   test('sorts fixture workouts correctly', () => {
@@ -311,7 +302,7 @@ describe('sortWorkoutsByDayAndTime', () => {
   });
 
   test('handles early morning workouts correctly', () => {
-    mockCurrentDate = '2024-02-01T04:30:00';
+    vi.setSystemTime(new Date('2024-02-01T04:30:00'));
 
     const workouts = [
       createWorkout('Thursday', '05:00 AM - 05:45 AM', '1', 'The Keep'),

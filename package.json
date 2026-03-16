@@ -14,9 +14,9 @@
     "format": "pnpm format:fix",
     "format:fix": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "db:generate:migration": "drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
@@ -53,7 +53,6 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/dompurify": "^3.2.0",
-    "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.20",
     "@types/node": "^20",
     "@types/pg": "^8.11.11",
@@ -66,14 +65,12 @@
     "eslint-config-next": "15.1.9",
     "firebase": "^12.0.0",
     "firebase-tools": "^14.27.0",
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
     "pg": "^8.13.3",
     "postcss": "^8",
     "prettier": "^3.6.2",
     "supabase": "^2.22.6",
     "tailwindcss": "^3.4.1",
-    "ts-jest": "^29.2.5",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.1"
   }
 }

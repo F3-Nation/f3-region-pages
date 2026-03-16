@@ -3,6 +3,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { WorkoutWithRegion } from '@/types/Workout';
+import {
+  extractWorkoutTypeOptions,
+  filterWorkouts,
+} from '@/utils/workoutFilters';
 
 interface WorkoutTypeFilterProps {
   workouts: WorkoutWithRegion[];
@@ -19,52 +23,15 @@ export function WorkoutTypeFilter({
     searchParams.get('type')?.toLowerCase() || null
   );
 
-  const normalizedTypeOptions = useMemo(() => {
-    const entries = new Map<string, string>();
-    workouts.forEach((workout) => {
-      const types =
-        Array.isArray(workout.types) && workout.types.length > 0
-          ? workout.types
-          : workout.type
-            ? [workout.type]
-            : [];
+  const workoutTypes = useMemo(
+    () => extractWorkoutTypeOptions(workouts),
+    [workouts]
+  );
 
-      types.forEach((type) => {
-        const trimmed = type.trim();
-        if (!trimmed) return;
-        const key = trimmed.toLowerCase();
-        if (!entries.has(key)) {
-          entries.set(key, trimmed);
-        }
-      });
-    });
-    return Array.from(entries.entries())
-      .sort((a, b) => a[1].localeCompare(b[1]))
-      .map(([key, label]) => ({ key, label }));
-  }, [workouts]);
-
-  // Get unique workout types from the data
-  const workoutTypes = normalizedTypeOptions;
-
-  // Apply filter based on URL param on mount and when URL changes
   useEffect(() => {
     const typeParam = searchParams.get('type')?.toLowerCase() || null;
     setSelectedType(typeParam);
-
-    if (typeParam) {
-      const filtered = workouts.filter((workout) => {
-        const types =
-          Array.isArray(workout.types) && workout.types.length > 0
-            ? workout.types
-            : workout.type
-              ? [workout.type]
-              : [];
-        return types.some((type) => type.toLowerCase() === typeParam);
-      });
-      onFilteredWorkouts(filtered);
-    } else {
-      onFilteredWorkouts(workouts);
-    }
+    onFilteredWorkouts(filterWorkouts(workouts, null, typeParam));
   }, [searchParams, workouts, onFilteredWorkouts]);
 
   const handleTypeClick = (typeKey: string) => {
