@@ -42,6 +42,7 @@
     "postinstall": "pnpm skills:check"
   },
   "dependencies": {
+    "dompurify": "^3.3.3",
     "dotenv": "^16.4.7",
     "lodash": "^4.17.21",
     "next": "15.1.9",
@@ -51,6 +52,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/dompurify": "^3.2.0",
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.20",
     "@types/node": "^20",
@@ -65,6 +67,7 @@
     "firebase": "^12.0.0",
     "firebase-tools": "^14.27.0",
     "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "pg": "^8.13.3",
     "postcss": "^8",
     "prettier": "^3.6.2",
