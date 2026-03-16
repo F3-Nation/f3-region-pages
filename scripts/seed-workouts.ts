@@ -17,6 +17,11 @@ import { currentIngestedAt, isFresh } from './seed-state';
 
 type Workout = typeof workoutsSchema.$inferInsert;
 
+/** Collision-safe dedup key using JSON array encoding to avoid null/"null" ambiguity. */
+function dedupKey(w: Workout): string {
+  return JSON.stringify([w.regionId, w.name, w.group, w.time, w.location]);
+}
+
 type Cursor = {
   updated: string;
   id: number;
@@ -103,6 +108,9 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
   };
   let batchNumber = 0;
   const regionBreakdown: Record<string, number> = {};
+  // Cross-batch dedup map: keyed by schedule identity so duplicates split
+  // across batch boundaries are still caught.
+  const globalDedupMap = new Map<string, Workout>();
   while (true) {
     if (options.maxBatches && batchNumber >= options.maxBatches) {
       console.debug(
@@ -112,10 +120,9 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     }
 
     const {
-      workouts,
+      workouts: batchWorkouts,
       nextCursor,
       regionBreakdown: batchBreakdown,
-      deduplicated: batchDeduplicated,
       skipped,
     } = await fetchWorkoutsBatch({
       cursor,
@@ -127,14 +134,32 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
       force,
     });
 
-    if (!workouts.length && !nextCursor) {
+    if (!batchWorkouts.length && !nextCursor) {
       console.debug('✅ no more workouts to process');
       break;
     }
 
-    if (workouts.length) {
-      await upsertWorkouts(workouts);
-      totalInserted += workouts.length;
+    // Cross-batch dedup: merge into global map, keeping highest event ID
+    let batchDeduplicated = 0;
+    const workoutsToUpsert: Workout[] = [];
+    for (const workout of batchWorkouts) {
+      const key = dedupKey(workout);
+      const existing = globalDedupMap.get(key);
+      if (existing) {
+        batchDeduplicated++;
+        if (Number(workout.id) > Number(existing.id)) {
+          globalDedupMap.set(key, workout);
+          workoutsToUpsert.push(workout);
+        }
+      } else {
+        globalDedupMap.set(key, workout);
+        workoutsToUpsert.push(workout);
+      }
+    }
+
+    if (workoutsToUpsert.length) {
+      await upsertWorkouts(workoutsToUpsert);
+      totalInserted += workoutsToUpsert.length;
     }
 
     for (const [name, count] of Object.entries(batchBreakdown)) {
@@ -153,7 +178,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     cursor = nextCursor;
 
     console.debug(
-      `📦 batch ${batchNumber}: upserted=${workouts.length}, deduplicated=${batchDeduplicated}, skipped=${skipped.total}` +
+      `📦 batch ${batchNumber}: upserted=${workoutsToUpsert.length}, deduplicated=${batchDeduplicated}, skipped=${skipped.total}` +
         (skipped.total
           ? ` (missingType=${skipped.missingType}, missingAo=${skipped.missingAo}, missingRegion=${skipped.missingRegion}, missingGroup=${skipped.missingGroup}, missingLocation=${skipped.missingLocation}, fresh=${skipped.fresh})`
           : '')
@@ -201,7 +226,6 @@ type BatchResult = {
   workouts: Workout[];
   nextCursor: Cursor | null;
   regionBreakdown: Record<string, number>;
-  deduplicated: number;
   skipped: {
     total: number;
     missingType: number;
@@ -268,7 +292,6 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
       workouts: [],
       nextCursor: null,
       regionBreakdown: {},
-      deduplicated: 0,
       skipped: {
         total: 0,
         missingAo: 0,
@@ -487,27 +510,8 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     });
   }
 
-  // Deduplicate workouts: warehouse events table has multiple rows per recurring
-  // workout (individual occurrences). Keep only the highest event ID per unique
-  // schedule entry (regionId + name + group + time + location).
-  const dedupMap = new Map<string, Workout>();
-  for (const workout of assembled) {
-    const key = `${workout.regionId}|${workout.name}|${workout.group}|${workout.time}|${workout.location}`;
-    const existing = dedupMap.get(key);
-    if (!existing || Number(workout.id) > Number(existing.id)) {
-      dedupMap.set(key, workout);
-    }
-  }
-  const dedupCount = assembled.length - dedupMap.size;
-  if (dedupCount > 0) {
-    console.debug(
-      `🔀 deduplicated ${dedupCount} recurring workout occurrences (${assembled.length} → ${dedupMap.size})`
-    );
-  }
-  const deduplicated = Array.from(dedupMap.values());
-
   const regionBreakdown: Record<string, number> = {};
-  for (const workout of deduplicated) {
+  for (const workout of assembled) {
     if (!workout.regionId) continue;
     const regionName =
       regionById.get(Number(workout.regionId))?.name ?? workout.regionId;
@@ -520,10 +524,9 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     : null;
 
   return {
-    workouts: deduplicated,
+    workouts: assembled,
     nextCursor,
     regionBreakdown,
-    deduplicated: dedupCount,
     skipped,
   };
 }
