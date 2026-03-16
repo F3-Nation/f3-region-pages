@@ -19,8 +19,7 @@ type Workout = typeof workoutsSchema.$inferInsert;
 
 /** Collision-safe dedup key using JSON array encoding to avoid null/"null" ambiguity. */
 function dedupKey(w: Workout): string {
-  const trim = (v: string | null | undefined) =>
-    v == null ? null : v.trim();
+  const trim = (v: string | null | undefined) => (v == null ? null : v.trim());
   return JSON.stringify([
     trim(w.regionId),
     trim(w.name),
