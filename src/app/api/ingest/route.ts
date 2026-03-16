@@ -166,6 +166,7 @@ export async function POST(request: NextRequest) {
         regionsSeeded: stats.regionsSeeded,
         regionsSkippedFresh: stats.regionsSkippedFresh,
         workoutsSeeded: stats.workoutsSeeded,
+        workoutsDeduplicated: stats.workoutsDeduplicated,
         workoutsSkipped: stats.workoutsSkipped,
         workoutBatches: stats.workoutBatches,
         workoutsSkippedFresh: stats.skipBreakdown.fresh,

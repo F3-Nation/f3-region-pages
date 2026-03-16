@@ -64,6 +64,7 @@ export const ingestRuns = pgTable('ingest_runs', {
   regionsSeeded: integer('regions_seeded'),
   regionsSkippedFresh: integer('regions_skipped_fresh'),
   workoutsSeeded: integer('workouts_seeded'),
+  workoutsDeduplicated: integer('workouts_deduplicated'),
   workoutsSkipped: integer('workouts_skipped'),
   workoutBatches: integer('workout_batches'),
   workoutsSkippedFresh: integer('workouts_skipped_fresh'),
