@@ -1,6 +1,10 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 const ALLOWED_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+const LINK_STYLE: CSSProperties = {
+  color: '#60a5fa',
+  textDecoration: 'underline',
+};
 const TEXT_NODE_TYPE = 3;
 const ELEMENT_NODE_TYPE = 1;
 
@@ -43,6 +47,7 @@ const serverSanitize = (html: string): ReactNode[] => {
             href={safeHref}
             target="_blank"
             rel="noopener noreferrer"
+            style={LINK_STYLE}
           >
             {innerText || safeHref}
           </a>
@@ -123,7 +128,13 @@ const sanitizeNode = (node: ChildNode, key: string): ReactNode[] => {
       const safeHref = href.trim();
 
       return [
-        <a key={key} href={safeHref} target="_blank" rel="noopener noreferrer">
+        <a
+          key={key}
+          href={safeHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={LINK_STYLE}
+        >
           {childContent.length > 0 ? childContent : safeHref}
         </a>,
       ];
