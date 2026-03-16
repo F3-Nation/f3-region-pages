@@ -1,4 +1,4 @@
-import { eq, asc, and, gt, gte, or, inArray } from 'drizzle-orm';
+import { eq, asc, and, gt, gte, or, inArray, sql } from 'drizzle-orm';
 
 import { db } from '../drizzle/db';
 import {
@@ -16,6 +16,18 @@ import {
 import { currentIngestedAt, isFresh } from './seed-state';
 
 type Workout = typeof workoutsSchema.$inferInsert;
+
+/** Collision-safe dedup key using JSON array encoding to avoid null/"null" ambiguity. */
+function dedupKey(w: Workout): string {
+  const trim = (v: string | null | undefined) => (v == null ? null : v.trim());
+  return JSON.stringify([
+    trim(w.regionId),
+    trim(w.name),
+    trim(w.group),
+    trim(w.time),
+    trim(w.location),
+  ]);
+}
 
 type Cursor = {
   updated: string;
@@ -91,6 +103,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
 
   let cursor: Cursor | null = null;
   let totalInserted = 0;
+  let totalDeduplicated = 0;
   let totalSkipped = 0;
   const totalSkipBreakdown = {
     fresh: 0,
@@ -102,6 +115,9 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
   };
   let batchNumber = 0;
   const regionBreakdown: Record<string, number> = {};
+  // Cross-batch dedup map: keyed by schedule identity so duplicates split
+  // across batch boundaries are still caught.
+  const globalDedupMap = new Map<string, Workout>();
   while (true) {
     if (options.maxBatches && batchNumber >= options.maxBatches) {
       console.debug(
@@ -111,7 +127,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     }
 
     const {
-      workouts,
+      workouts: batchWorkouts,
       nextCursor,
       regionBreakdown: batchBreakdown,
       skipped,
@@ -125,14 +141,48 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
       force,
     });
 
-    if (!workouts.length && !nextCursor) {
+    if (!batchWorkouts.length && !nextCursor) {
       console.debug('✅ no more workouts to process');
       break;
     }
 
-    if (workouts.length) {
-      await upsertWorkouts(workouts);
-      totalInserted += workouts.length;
+    // Cross-batch dedup: merge into global map, keeping highest event ID.
+    // When a newer duplicate displaces an older one, collect the old ID for
+    // deletion so stale rows don't persist in the DB.
+    let batchDeduplicated = 0;
+    const workoutsToUpsert: Workout[] = [];
+    const idsToDelete: string[] = [];
+    for (const workout of batchWorkouts) {
+      if (!workout.id) continue;
+      const key = dedupKey(workout);
+      const existing = globalDedupMap.get(key);
+      if (existing && existing.id) {
+        batchDeduplicated++;
+        if (Number(workout.id) > Number(existing.id)) {
+          idsToDelete.push(existing.id);
+          globalDedupMap.set(key, workout);
+          workoutsToUpsert.push(workout);
+        } else {
+          idsToDelete.push(workout.id);
+        }
+      } else {
+        globalDedupMap.set(key, workout);
+        workoutsToUpsert.push(workout);
+      }
+    }
+
+    if (workoutsToUpsert.length) {
+      await upsertWorkouts(workoutsToUpsert);
+      totalInserted += workoutsToUpsert.length;
+    }
+
+    if (idsToDelete.length) {
+      await db
+        .delete(workoutsSchema)
+        .where(inArray(workoutsSchema.id, idsToDelete));
+      console.debug(
+        `🗑️ deleted ${idsToDelete.length} displaced duplicate workout row(s)`
+      );
     }
 
     for (const [name, count] of Object.entries(batchBreakdown)) {
@@ -140,6 +190,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     }
 
     batchNumber++;
+    totalDeduplicated += batchDeduplicated;
     totalSkipped += skipped.total;
     totalSkipBreakdown.fresh += skipped.fresh;
     totalSkipBreakdown.missingType += skipped.missingType;
@@ -150,7 +201,7 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     cursor = nextCursor;
 
     console.debug(
-      `📦 batch ${batchNumber}: upserted=${workouts.length}, skipped=${skipped.total}` +
+      `📦 batch ${batchNumber}: upserted=${workoutsToUpsert.length}, deduplicated=${batchDeduplicated}, skipped=${skipped.total}` +
         (skipped.total
           ? ` (missingType=${skipped.missingType}, missingAo=${skipped.missingAo}, missingRegion=${skipped.missingRegion}, missingGroup=${skipped.missingGroup}, missingLocation=${skipped.missingLocation}, fresh=${skipped.fresh})`
           : '')
@@ -159,11 +210,37 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     if (!nextCursor) break;
   }
 
+  // Final cleanup: remove any pre-existing duplicate rows from prior ingests
+  // that ran before dedup was added. Keep the row with the highest id per
+  // unique schedule identity.
+  const pruned = await db.execute(sql`
+    DELETE FROM workouts
+    WHERE id IN (
+      SELECT id FROM (
+        SELECT id,
+               ROW_NUMBER() OVER (
+                 PARTITION BY region_id, name, "group", time, location
+                 ORDER BY id DESC
+               ) AS rn
+        FROM workouts
+      ) ranked
+      WHERE rn > 1
+    )
+  `);
+  const prunedCount = pruned.rowCount ?? 0;
+  if (prunedCount > 0) {
+    console.debug(
+      `🧹 pruned ${prunedCount} pre-existing duplicate workout row(s)`
+    );
+  }
+
   console.debug(
-    `✅ done inserting workouts (total upserted: ${totalInserted} across ${batchNumber} batch(es))`
+    `✅ done inserting workouts (total upserted: ${totalInserted}, deduplicated: ${totalDeduplicated} across ${batchNumber} batch(es))`
   );
   return {
     upserted: totalInserted,
+    deduplicated: totalDeduplicated,
+    duplicatesPruned: prunedCount,
     skipped: totalSkipped,
     skipBreakdown: totalSkipBreakdown,
     batches: batchNumber,
@@ -494,7 +571,12 @@ async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
     ? { updated: lastRow.updated, id: lastRow.id }
     : null;
 
-  return { workouts: assembled, nextCursor, regionBreakdown, skipped };
+  return {
+    workouts: assembled,
+    nextCursor,
+    regionBreakdown,
+    skipped,
+  };
 }
 
 if (import.meta.main) {

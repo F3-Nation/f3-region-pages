@@ -71,6 +71,13 @@
       "when": 1771769535256,
       "tag": "0009_premium_liz_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1773663614905,
+      "tag": "0010_clear_captain_stacy",
+      "breakpoints": true
     }
   ]
 }

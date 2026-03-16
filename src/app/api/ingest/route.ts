@@ -70,13 +70,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // 2. Check if already run today (idempotent)
+  // 2. Check if already run today (idempotent, unless ?force=true)
+  const force = request.nextUrl.searchParams.get('force') === 'true';
   const [lastRun] = await db
     .select()
     .from(seedRuns)
     .where(eq(seedRuns.key, INGEST_KEY));
 
-  if (lastRun?.lastIngestedAt) {
+  if (!force && lastRun?.lastIngestedAt) {
     const elapsed = Date.now() - Date.parse(lastRun.lastIngestedAt);
     if (elapsed < FRESH_WINDOW_MS) {
       // Persist skipped run
@@ -138,6 +139,7 @@ export async function POST(request: NextRequest) {
       regionsSkippedFresh: seedRegionsStats.skippedFresh,
       regionsSeededNames: seedRegionsStats.regionNames,
       workoutsSeeded: seedWorkoutsStats.upserted,
+      workoutsDeduplicated: seedWorkoutsStats.deduplicated,
       workoutsSkipped: seedWorkoutsStats.skipped,
       workoutBatches: seedWorkoutsStats.batches,
       workoutRegionBreakdown: seedWorkoutsStats.regionBreakdown,
@@ -165,6 +167,7 @@ export async function POST(request: NextRequest) {
         regionsSeeded: stats.regionsSeeded,
         regionsSkippedFresh: stats.regionsSkippedFresh,
         workoutsSeeded: stats.workoutsSeeded,
+        workoutsDeduplicated: stats.workoutsDeduplicated,
         workoutsSkipped: stats.workoutsSkipped,
         workoutBatches: stats.workoutBatches,
         workoutsSkippedFresh: stats.skipBreakdown.fresh,
@@ -245,6 +248,9 @@ export async function POST(request: NextRequest) {
 
     const workoutsSeededLine =
       `*Workouts seeded (${fmt(stats.workoutsSeeded)}):* ${fmt(stats.workoutsSeeded)} in ${fmt(stats.workoutBatches)} batch(es)` +
+      (stats.workoutsDeduplicated > 0
+        ? ` (${fmt(stats.workoutsDeduplicated)} deduplicated)`
+        : '') +
       (stats.workoutsSkipped > 0
         ? ` (${fmt(stats.workoutsSkipped)} skipped)`
         : '');
