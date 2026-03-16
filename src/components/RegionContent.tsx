@@ -114,7 +114,7 @@ export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
         <p
           className="text-gray-600 dark:text-gray-400 mb-4 [&_a]:text-blue-400 [&_a]:underline [&_a]:hover:text-blue-300"
           dangerouslySetInnerHTML={{
-            __html: sanitizedDescription || descriptionSource,
+            __html: sanitizedDescription,
           }}
         />
       </div>
@@ -281,7 +281,7 @@ export function RegionContent({
         <p
           className="text-gray-600 dark:text-gray-400 mb-4 [&_a]:text-blue-400 [&_a]:underline [&_a]:hover:text-blue-300"
           dangerouslySetInnerHTML={{
-            __html: sanitizedDescription || descriptionSource,
+            __html: sanitizedDescription,
           }}
         />
       </div>
