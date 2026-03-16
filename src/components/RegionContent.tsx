@@ -15,7 +15,7 @@ import {
   formatEventDate,
   formatEventTimeRange,
 } from '@/utils/regionEvents';
-import { sanitizeHtmlToReactNodes } from '@/utils/safeHtml';
+import { sanitizeHtml } from '@/utils/safeHtml';
 
 interface RegionContentProps {
   regionSlug: string;
@@ -77,7 +77,7 @@ export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
       ? region.description
       : defaultRegionDescription;
   const sanitizedDescription = useMemo(
-    () => sanitizeHtmlToReactNodes(descriptionSource),
+    () => sanitizeHtml(descriptionSource),
     [descriptionSource]
   );
 
@@ -111,11 +111,12 @@ export function OrphanedRegionContent({ region }: OrphanedRegionContentProps) {
         <h1 className="text-4xl font-bold mb-2 flex items-center">
           F3 {region.name}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          {sanitizedDescription.length > 0
-            ? sanitizedDescription
-            : descriptionSource}
-        </p>
+        <p
+          className="text-gray-600 dark:text-gray-400 mb-4 [&_a]:text-blue-400 [&_a]:underline [&_a]:hover:text-blue-300"
+          dangerouslySetInnerHTML={{
+            __html: sanitizedDescription || descriptionSource,
+          }}
+        />
       </div>
 
       {/* No workouts yet card */}
@@ -216,7 +217,7 @@ export function RegionContent({
       : defaultRegionDescription;
   const isFallbackLogo = !image;
   const sanitizedDescription = useMemo(
-    () => sanitizeHtmlToReactNodes(descriptionSource),
+    () => sanitizeHtml(descriptionSource),
     [descriptionSource]
   );
 
@@ -277,11 +278,12 @@ export function RegionContent({
           )}
           F3 {regionName}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          {sanitizedDescription.length > 0
-            ? sanitizedDescription
-            : descriptionSource}
-        </p>
+        <p
+          className="text-gray-600 dark:text-gray-400 mb-4 [&_a]:text-blue-400 [&_a]:underline [&_a]:hover:text-blue-300"
+          dangerouslySetInnerHTML={{
+            __html: sanitizedDescription || descriptionSource,
+          }}
+        />
       </div>
 
       <RegionHeader
