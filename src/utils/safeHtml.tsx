@@ -4,12 +4,68 @@ const ALLOWED_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
 const TEXT_NODE_TYPE = 3;
 const ELEMENT_NODE_TYPE = 1;
 
-const stripHtml = (value: string): string =>
-  value
+const serverSanitize = (html: string): ReactNode[] => {
+  // Strip script and style blocks first
+  const cleaned = html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    .replace(/<[^>]*>/g, '')
-    .trim();
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+
+  const nodes: ReactNode[] = [];
+  // Match tags or text between tags
+  const tokenRegex = /(<a\s[^>]*>[\s\S]*?<\/a>|<br\s*\/?>|<[^>]*>)/gi;
+  let lastIndex = 0;
+  let keyIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = tokenRegex.exec(cleaned)) !== null) {
+    // Text before this tag
+    if (match.index > lastIndex) {
+      const text = cleaned.slice(lastIndex, match.index);
+      if (text) nodes.push(text);
+    }
+
+    const token = match[0];
+
+    if (/^<a\s/i.test(token)) {
+      // Extract href
+      const hrefMatch = token.match(/href=["']([^"']*)["']/i);
+      const href = hrefMatch?.[1] ?? '';
+      // Extract inner text (strip any nested tags)
+      const innerMatch = token.match(/^<a\s[^>]*>([\s\S]*?)<\/a>$/i);
+      const innerHtml = innerMatch?.[1] ?? '';
+      const innerText = innerHtml.replace(/<[^>]*>/g, '');
+
+      if (isSafeHref(href)) {
+        const safeHref = href.trim();
+        nodes.push(
+          <a
+            key={`server-${keyIndex++}`}
+            href={safeHref}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {innerText || safeHref}
+          </a>
+        );
+      } else {
+        if (innerText) nodes.push(innerText);
+      }
+    } else if (/^<br\s*\/?>/i.test(token)) {
+      nodes.push(<br key={`server-${keyIndex++}`} />);
+    }
+    // All other tags are stripped (content between open/close handled as text)
+
+    lastIndex = tokenRegex.lastIndex;
+  }
+
+  // Remaining text after last tag
+  if (lastIndex < cleaned.length) {
+    const text = cleaned.slice(lastIndex);
+    if (text) nodes.push(text);
+  }
+
+  return nodes;
+};
 
 const sanitizeChildNodes = (
   nodes: NodeListOf<ChildNode> | ChildNode[],
@@ -85,16 +141,14 @@ export const sanitizeHtmlToReactNodes = (
   if (!html) return [];
 
   if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
-    const stripped = stripHtml(html);
-    return stripped ? [stripped] : [];
+    return serverSanitize(html);
   }
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
 
   if (doc.querySelector('parsererror')) {
-    const stripped = stripHtml(html);
-    return stripped ? [stripped] : [];
+    return serverSanitize(html);
   }
 
   return sanitizeChildNodes(doc.body.childNodes, 'safe-html');
