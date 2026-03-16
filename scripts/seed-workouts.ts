@@ -19,7 +19,15 @@ type Workout = typeof workoutsSchema.$inferInsert;
 
 /** Collision-safe dedup key using JSON array encoding to avoid null/"null" ambiguity. */
 function dedupKey(w: Workout): string {
-  return JSON.stringify([w.regionId, w.name, w.group, w.time, w.location]);
+  const trim = (v: string | null | undefined) =>
+    v == null ? null : v.trim();
+  return JSON.stringify([
+    trim(w.regionId),
+    trim(w.name),
+    trim(w.group),
+    trim(w.time),
+    trim(w.location),
+  ]);
 }
 
 type Cursor = {
@@ -139,17 +147,23 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
       break;
     }
 
-    // Cross-batch dedup: merge into global map, keeping highest event ID
+    // Cross-batch dedup: merge into global map, keeping highest event ID.
+    // When a newer duplicate displaces an older one, collect the old ID for
+    // deletion so stale rows don't persist in the DB.
     let batchDeduplicated = 0;
     const workoutsToUpsert: Workout[] = [];
+    const idsToDelete: string[] = [];
     for (const workout of batchWorkouts) {
       const key = dedupKey(workout);
       const existing = globalDedupMap.get(key);
       if (existing) {
         batchDeduplicated++;
         if (Number(workout.id) > Number(existing.id)) {
+          idsToDelete.push(existing.id!);
           globalDedupMap.set(key, workout);
           workoutsToUpsert.push(workout);
+        } else {
+          idsToDelete.push(workout.id!);
         }
       } else {
         globalDedupMap.set(key, workout);
@@ -160,6 +174,15 @@ export async function seedWorkouts(opts: Partial<SeedOptions> = {}) {
     if (workoutsToUpsert.length) {
       await upsertWorkouts(workoutsToUpsert);
       totalInserted += workoutsToUpsert.length;
+    }
+
+    if (idsToDelete.length) {
+      await db
+        .delete(workoutsSchema)
+        .where(inArray(workoutsSchema.id, idsToDelete));
+      console.debug(
+        `🗑️ deleted ${idsToDelete.length} displaced duplicate workout row(s)`
+      );
     }
 
     for (const [name, count] of Object.entries(batchBreakdown)) {
