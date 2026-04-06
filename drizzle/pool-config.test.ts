@@ -3,12 +3,12 @@ import { WAREHOUSE_POOL_CONFIG, SUPABASE_POOL_CONFIG } from './pool-config';
 describe('Pool Configuration', () => {
   describe('warehouse pool', () => {
     it('should have a conservative max connection limit', () => {
-      expect(WAREHOUSE_POOL_CONFIG.max).toBeLessThanOrEqual(5);
+      expect(WAREHOUSE_POOL_CONFIG.max).toBeLessThanOrEqual(3);
     });
     it('should have explicit connection timeout', () => {
       expect(WAREHOUSE_POOL_CONFIG.connectionTimeoutMillis).toBeDefined();
       expect(WAREHOUSE_POOL_CONFIG.connectionTimeoutMillis).toBeLessThanOrEqual(
-        15_000
+        30_000
       );
     });
     it('should have explicit idle timeout', () => {

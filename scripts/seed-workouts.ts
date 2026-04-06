@@ -40,16 +40,14 @@ type SeedOptions = {
   updatedAfter?: string;
 };
 
-const DEFAULT_BATCH_SIZE = Number(
-  process.env.WORKOUT_SEED_BATCH_SIZE ?? '1000'
-);
+const DEFAULT_BATCH_SIZE = Number(process.env.WORKOUT_SEED_BATCH_SIZE ?? '500');
 const DEFAULT_MAX_BATCHES = process.env.WORKOUT_SEED_MAX_BATCHES
   ? Number(process.env.WORKOUT_SEED_MAX_BATCHES)
   : undefined;
 const DEFAULT_UPDATED_AFTER = process.env.WORKOUT_SEED_UPDATED_AFTER;
 const UPSERT_CONCURRENCY = Math.max(
   1,
-  Number(process.env.WORKOUT_SEED_UPSERT_CONCURRENCY ?? '4')
+  Number(process.env.WORKOUT_SEED_UPSERT_CONCURRENCY ?? '2')
 );
 
 async function loadWorkoutIngestionMap() {
