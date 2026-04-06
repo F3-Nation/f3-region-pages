@@ -15,8 +15,9 @@ let dbInstance: NodePgDatabase<typeof schema> | null = null;
  * Requires: CLOUD_SQL_WAREHOUSE_CONNECTION_NAME, WAREHOUSE_DB_USER, WAREHOUSE_DB_NAME
  */
 async function createCloudSqlPool(): Promise<Pool> {
-  const { Connector, IpAddressTypes: IpAddressTypesValues } =
-    await import('@google-cloud/cloud-sql-connector');
+  const { Connector, IpAddressTypes: IpAddressTypesValues } = await import(
+    '@google-cloud/cloud-sql-connector'
+  );
 
   const instanceConnectionName =
     process.env.CLOUD_SQL_WAREHOUSE_CONNECTION_NAME;
