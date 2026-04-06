@@ -7,7 +7,9 @@ describe('Pool Configuration', () => {
     });
     it('should have explicit connection timeout', () => {
       expect(WAREHOUSE_POOL_CONFIG.connectionTimeoutMillis).toBeDefined();
-      expect(WAREHOUSE_POOL_CONFIG.connectionTimeoutMillis).toBeLessThanOrEqual(15_000);
+      expect(WAREHOUSE_POOL_CONFIG.connectionTimeoutMillis).toBeLessThanOrEqual(
+        15_000
+      );
     });
     it('should have explicit idle timeout', () => {
       expect(WAREHOUSE_POOL_CONFIG.idleTimeoutMillis).toBeDefined();
@@ -19,7 +21,9 @@ describe('Pool Configuration', () => {
 
   describe('supabase pool', () => {
     it('should allow more connections than warehouse', () => {
-      expect(SUPABASE_POOL_CONFIG.max).toBeGreaterThan(WAREHOUSE_POOL_CONFIG.max);
+      expect(SUPABASE_POOL_CONFIG.max).toBeGreaterThan(
+        WAREHOUSE_POOL_CONFIG.max
+      );
     });
     it('should have explicit connection timeout', () => {
       expect(SUPABASE_POOL_CONFIG.connectionTimeoutMillis).toBeDefined();

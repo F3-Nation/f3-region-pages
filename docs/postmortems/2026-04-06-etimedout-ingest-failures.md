@@ -18,6 +18,7 @@ Both database connection pools (Supabase and F3 Data Warehouse) were initialized
 The default `pg` Pool settings allow up to 10 concurrent connections with no idle timeout, no connection timeout, and no statement timeout. During the seed-workouts phase, 8 concurrent upsert operations (the default `UPSERT_CONCURRENCY`) would attempt to acquire connections from both pools simultaneously. Under load, this exhausted the GCP warehouse's connection capacity, causing new connection attempts to hang indefinitely until the operating system killed them with ETIMEDOUT.
 
 Key contributing factors:
+
 - **No explicit pool sizing**: Default `pg` Pool allows ~10 connections, but with 8 concurrent workers each needing connections from both pools, effective demand was up to 16 concurrent connections across two pools
 - **No connection timeout**: Failed connection attempts hung indefinitely rather than failing fast
 - **No idle timeout**: Stale connections were never released back to the pool
