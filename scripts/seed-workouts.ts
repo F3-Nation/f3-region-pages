@@ -49,7 +49,7 @@ const DEFAULT_MAX_BATCHES = process.env.WORKOUT_SEED_MAX_BATCHES
 const DEFAULT_UPDATED_AFTER = process.env.WORKOUT_SEED_UPDATED_AFTER;
 const UPSERT_CONCURRENCY = Math.max(
   1,
-  Number(process.env.WORKOUT_SEED_UPSERT_CONCURRENCY ?? '8')
+  Number(process.env.WORKOUT_SEED_UPSERT_CONCURRENCY ?? '4')
 );
 
 async function loadWorkoutIngestionMap() {

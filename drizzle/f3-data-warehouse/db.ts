@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { loadEnvConfig } from '@/lib/env';
+import { WAREHOUSE_POOL_CONFIG } from '../pool-config';
 import * as schema from './schema';
 
 // Load environment variables
@@ -9,6 +10,7 @@ const { F3_DATA_WAREHOUSE_URL } = loadEnvConfig();
 // Create PostgreSQL connection pool
 const pool = new Pool({
   connectionString: F3_DATA_WAREHOUSE_URL,
+  ...WAREHOUSE_POOL_CONFIG,
 });
 
 // Create drizzle database instance
