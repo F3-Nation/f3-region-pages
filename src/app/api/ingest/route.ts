@@ -151,7 +151,6 @@ export async function POST(request: NextRequest) {
       // 7. Get comparison analytics (before persisting success so current run isn't in the window)
       const comparison = await getIngestComparison({
         workoutsSeeded: stats.workoutsSeeded,
-        workoutsDeduplicated: stats.workoutsDeduplicated,
         workoutsSkipped: stats.workoutsSkipped,
         regionsSeeded: stats.regionsSeeded,
         durationSec: stats.durationSec,
