@@ -5,7 +5,7 @@ import {
   regions as regionsSchema,
   workouts as workoutsSchema,
 } from '../drizzle/schema';
-import { db as f3DataWarehouseDb } from '../drizzle/f3-data-warehouse/db';
+import { getDb as getF3DataWarehouseDb } from '../drizzle/f3-data-warehouse/db';
 import {
   orgs as orgsSchema,
   events as eventsSchema,
@@ -40,16 +40,14 @@ type SeedOptions = {
   updatedAfter?: string;
 };
 
-const DEFAULT_BATCH_SIZE = Number(
-  process.env.WORKOUT_SEED_BATCH_SIZE ?? '1000'
-);
+const DEFAULT_BATCH_SIZE = Number(process.env.WORKOUT_SEED_BATCH_SIZE ?? '500');
 const DEFAULT_MAX_BATCHES = process.env.WORKOUT_SEED_MAX_BATCHES
   ? Number(process.env.WORKOUT_SEED_MAX_BATCHES)
   : undefined;
 const DEFAULT_UPDATED_AFTER = process.env.WORKOUT_SEED_UPDATED_AFTER;
 const UPSERT_CONCURRENCY = Math.max(
   1,
-  Number(process.env.WORKOUT_SEED_UPSERT_CONCURRENCY ?? '8')
+  Number(process.env.WORKOUT_SEED_UPSERT_CONCURRENCY ?? '2')
 );
 
 async function loadWorkoutIngestionMap() {
@@ -296,6 +294,7 @@ type FetchBatchArgs = {
 };
 
 async function fetchWorkoutsBatch(args: FetchBatchArgs): Promise<BatchResult> {
+  const f3DataWarehouseDb = await getF3DataWarehouseDb();
   const conditions = [eq(eventsSchema.isActive, true)];
   if (args.updatedAfter) {
     conditions.push(gte(eventsSchema.updated, args.updatedAfter));

@@ -42,6 +42,7 @@
     "postinstall": "pnpm skills:check"
   },
   "dependencies": {
+    "@google-cloud/cloud-sql-connector": "^1.9.2",
     "dotenv": "^16.4.7",
     "lodash": "^4.17.21",
     "next": "15.1.9",
