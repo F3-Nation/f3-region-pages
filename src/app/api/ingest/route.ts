@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 
 import { db } from '../../../../drizzle/db';
+import { getPool as getWarehousePool } from '../../../../drizzle/f3-data-warehouse/db';
 import { seedRuns, ingestRuns } from '../../../../drizzle/schema';
 import { pruneRegions } from '../../../../scripts/prune-regions';
 import { pruneWorkouts } from '../../../../scripts/prune-workouts';
@@ -107,7 +108,39 @@ export async function POST(request: NextRequest) {
       .values({ startedAt, status: 'running' })
       .returning({ id: ingestRuns.id });
 
-    // 4. Run ingest
+    // 4. Pre-flight: verify warehouse connectivity before running the pipeline
+    const warehousePool = getWarehousePool();
+    const warehouseReachable = await warehousePool.isReachable();
+    if (!warehouseReachable) {
+      const msg =
+        'Warehouse database is unreachable after retry attempts — aborting ingest';
+      console.error(msg);
+
+      try {
+        await db
+          .update(ingestRuns)
+          .set({
+            completedAt: new Date().toISOString(),
+            status: 'failure',
+            durationSec: 0,
+            errorMessage: msg,
+          })
+          .where(eq(ingestRuns.id, runRow.id));
+      } catch (persistError) {
+        console.error('Failed to persist pre-flight failure:', persistError);
+      }
+
+      await sendSlackNotification(
+        `:x: F3 Region Pages daily ingest failed: ${escapeSlack(msg)}`
+      );
+      return NextResponse.json(
+        { status: 'error', message: msg },
+        { status: 503 }
+      );
+    }
+    console.log('✅ Warehouse pre-flight check passed');
+
+    // 5. Run ingest
     try {
       const startTime = Date.now();
 
@@ -119,7 +152,7 @@ export async function POST(request: NextRequest) {
 
       const durationSec = Math.round((Date.now() - startTime) / 1000);
 
-      // 5. Record successful run in seedRuns
+      // 6. Record successful run in seedRuns
       const now = new Date().toISOString();
       await db
         .insert(seedRuns)
@@ -129,7 +162,7 @@ export async function POST(request: NextRequest) {
           set: { lastIngestedAt: now },
         });
 
-      // 6. Build stats
+      // 7. Build stats
       const stats = {
         durationSec,
         regionsPruned: pruneRegionsStats.removed,
@@ -148,7 +181,7 @@ export async function POST(request: NextRequest) {
         regionsEnriched: enrichRegionsStats.enriched,
       };
 
-      // 7. Get comparison analytics (before persisting success so current run isn't in the window)
+      // 8. Get comparison analytics (before persisting success so current run isn't in the window)
       const comparison = await getIngestComparison({
         workoutsSeeded: stats.workoutsSeeded,
         workoutsSkipped: stats.workoutsSkipped,
@@ -156,7 +189,7 @@ export async function POST(request: NextRequest) {
         durationSec: stats.durationSec,
       });
 
-      // 8. Persist full stats to ingestRuns
+      // 9. Persist full stats to ingestRuns
       await db
         .update(ingestRuns)
         .set({
@@ -182,7 +215,7 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(ingestRuns.id, runRow.id));
 
-      // 9. Build Slack message
+      // 10. Build Slack message
       const fmt = (n: number) => n.toLocaleString('en-US');
 
       const capList = (
