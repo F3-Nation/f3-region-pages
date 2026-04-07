@@ -8,6 +8,12 @@ async function generateWarehouseSchema() {
     // Load environment variables
     const { F3_DATA_WAREHOUSE_URL } = loadEnvConfig();
 
+    if (!F3_DATA_WAREHOUSE_URL) {
+      throw new Error(
+        'F3_DATA_WAREHOUSE_URL is required for schema generation (set WAREHOUSE_DB_CONNECTION_MODE=direct)'
+      );
+    }
+
     console.log('🔍 Generating schema from F3 Data Warehouse...');
     console.log(
       `📊 Database URL: ${F3_DATA_WAREHOUSE_URL.replace(/:[^:@]*@/, ':***@')}`

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@google-cloud/cloud-sql-connector':
+        specifier: ^1.9.2
+        version: 1.9.2
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
@@ -842,8 +845,8 @@ packages:
   '@firebase/webchannel-wrapper@1.0.5':
     resolution: {integrity: sha512-+uGNN7rkfn41HLO0vekTFhTxk61eKa8mTpRGLO0QSqlQdKvIoGAvLp3ppdVIWbTGYJWM6Kp0iN+PjMIOcnVqTw==}
 
-  '@google-cloud/cloud-sql-connector@1.8.4':
-    resolution: {integrity: sha512-dX36ksbh4xrIsALCHxNYXwvRUtlZ/msQ/PL0LpSYWHnfMenRM+watAzM/XIVr8tQOtzhT7mrmrAb/W/bgayQAQ==}
+  '@google-cloud/cloud-sql-connector@1.9.2':
+    resolution: {integrity: sha512-o2LYUAKHvNtgevMCOaMH7bCDnRcyC9Z8UtEG6aPwjN+yIld1I6QPu+6Iq4n+/CHC7P4o+UlsNpHa9Hf/oM81qQ==}
     engines: {node: '>=18'}
 
   '@google-cloud/paginator@6.0.0':
@@ -866,8 +869,8 @@ packages:
     resolution: {integrity: sha512-YNSRBo85mgPQ9QuuzAHjmLwngIwmy2RjAUAoPl2mOL2+bCM0cAVZswPb8ylcsWJP7PgDJlck+ybv0MwJ9AM0sg==}
     engines: {node: '>=18'}
 
-  '@googleapis/sqladmin@31.1.0':
-    resolution: {integrity: sha512-k4lXSFCFuZmWtYuW/OH/PcHimZP5P/uDLK0+ACbgoZFB8qmlgcyF0531aJt6JHIdBwCRlHXZlMW4LDC5Gqra5w==}
+  '@googleapis/sqladmin@35.2.0':
+    resolution: {integrity: sha512-ajR9EGLs1pCkKfsXxfbVRnQ7ZPyktKNAuahHoU06CVKguWwQo3b9aFmq06PYnGk1oXc0+tlW+XEamNa/HF4pbQ==}
     engines: {node: '>=12.0.0'}
 
   '@grpc/grpc-js@1.14.2':
@@ -3087,6 +3090,10 @@ packages:
     resolution: {integrity: sha512-YGGyuEdVIjqxkxVH1pUTMY/XtmmsApXrCVv5EU25iX6inEPbV+VakJfLealkBtJN69AQmh1eGOdCl9Sm1UP6XQ==}
     engines: {node: '>=18'}
 
+  gaxios@7.1.4:
+    resolution: {integrity: sha512-bTIgTsM2bWn3XklZISBTQX7ZSddGW+IO3bMdGaemHZ3tbqExMENHLx6kKZ/KlejgrMtj8q7wBItt51yegqalrA==}
+    engines: {node: '>=18'}
+
   gcp-metadata@6.1.1:
     resolution: {integrity: sha512-a4tiq7E0/5fTjxPAaH4jpjkSv/uCaU2p5KC6HVGrvl0cDjA8iBZv4vv1gyzlmK0ZUKqwpOyQMKzZQe3lTit77A==}
     engines: {node: '>=14'}
@@ -3177,6 +3184,10 @@ packages:
     resolution: {integrity: sha512-7ABviyMOlX5hIVD60YOfHw4/CxOfBhyduaYB+wbFWCWoni4N7SLcV46hrVRktuBbZjFC9ONyqamZITN7q3n32w==}
     engines: {node: '>=18'}
 
+  google-auth-library@10.6.2:
+    resolution: {integrity: sha512-e27Z6EThmVNNvtYASwQxose/G57rkRuaRbQyxM2bvYLLX/GqWZ5chWq2EBoUchJbCc57eC9ArzO5wMsEmWftCw==}
+    engines: {node: '>=18'}
+
   google-auth-library@9.15.1:
     resolution: {integrity: sha512-Jb6Z0+nvECVz+2lzSMt9u98UsoakXxA2HGHMCxh+so3n90XgYWkq5dur19JAJV7ONiJY22yBTyJB1TSkvPq9Ng==}
     engines: {node: '>=14'}
@@ -3193,8 +3204,8 @@ packages:
     resolution: {integrity: sha512-eAmLkjDjAFCVXg7A1unxHsLf961m6y17QFqXqAXGj/gVkKFrEICfStRfwUlGNfeCEjNRa32JEWOUTlYXPyyKvA==}
     engines: {node: '>=14'}
 
-  googleapis-common@8.0.2-rc.0:
-    resolution: {integrity: sha512-JTcxRvmFa9Ec1uyfMEimEMeeKq1sHNZX3vn2qmoUMtnvixXXvcqTcbDZvEZXkEWpGlPlOf4joyep6/qs0BrLyg==}
+  googleapis-common@8.0.1:
+    resolution: {integrity: sha512-eCzNACUXPb1PW5l0ULTzMHaL/ltPRADoPgjBlT8jWsTbxkCp6siv+qKJ/1ldaybCthGwsYFYallF7u9AkU4L+A==}
     engines: {node: '>=18.0.0'}
 
   gopd@1.2.0:
@@ -6377,11 +6388,11 @@ snapshots:
 
   '@firebase/webchannel-wrapper@1.0.5': {}
 
-  '@google-cloud/cloud-sql-connector@1.8.4':
+  '@google-cloud/cloud-sql-connector@1.9.2':
     dependencies:
-      '@googleapis/sqladmin': 31.1.0
-      gaxios: 7.1.3
-      google-auth-library: 10.5.0
+      '@googleapis/sqladmin': 35.2.0
+      gaxios: 7.1.4
+      google-auth-library: 10.6.2
       p-throttle: 7.0.0
     transitivePeerDependencies:
       - supports-color
@@ -6416,9 +6427,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@googleapis/sqladmin@31.1.0':
+  '@googleapis/sqladmin@35.2.0':
     dependencies:
-      googleapis-common: 8.0.2-rc.0
+      googleapis-common: 8.0.1
     transitivePeerDependencies:
       - supports-color
 
@@ -8843,7 +8854,7 @@ snapshots:
       '@apphosting/common': 0.0.8
       '@electric-sql/pglite': 0.3.14
       '@electric-sql/pglite-tools': 0.2.19(@electric-sql/pglite@0.3.14)
-      '@google-cloud/cloud-sql-connector': 1.8.4
+      '@google-cloud/cloud-sql-connector': 1.9.2
       '@google-cloud/pubsub': 5.2.0
       '@inquirer/prompts': 7.10.1(@types/node@20.19.24)
       '@modelcontextprotocol/sdk': 1.24.3(zod@3.25.76)
@@ -9053,6 +9064,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  gaxios@7.1.4:
+    dependencies:
+      extend: 3.0.2
+      https-proxy-agent: 7.0.6
+      node-fetch: 3.3.2
+    transitivePeerDependencies:
+      - supports-color
+
   gcp-metadata@6.1.1(encoding@0.1.13):
     dependencies:
       gaxios: 6.7.1(encoding@0.1.13)
@@ -9064,7 +9083,7 @@ snapshots:
 
   gcp-metadata@8.1.2:
     dependencies:
-      gaxios: 7.1.3
+      gaxios: 7.1.4
       google-logging-utils: 1.1.3
       json-bigint: 1.0.0
     transitivePeerDependencies:
@@ -9184,6 +9203,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  google-auth-library@10.6.2:
+    dependencies:
+      base64-js: 1.5.1
+      ecdsa-sig-formatter: 1.0.11
+      gaxios: 7.1.4
+      gcp-metadata: 8.1.2
+      google-logging-utils: 1.1.3
+      jws: 4.0.1
+    transitivePeerDependencies:
+      - supports-color
+
   google-auth-library@9.15.1(encoding@0.1.13):
     dependencies:
       base64-js: 1.5.1
@@ -9216,11 +9246,11 @@ snapshots:
 
   google-logging-utils@1.1.3: {}
 
-  googleapis-common@8.0.2-rc.0:
+  googleapis-common@8.0.1:
     dependencies:
       extend: 3.0.2
-      gaxios: 7.1.3
-      google-auth-library: 10.5.0
+      gaxios: 7.1.4
+      google-auth-library: 10.6.2
       qs: 6.14.0
       url-template: 2.0.8
     transitivePeerDependencies:

@@ -109,8 +109,19 @@ export async function POST(request: NextRequest) {
       .returning({ id: ingestRuns.id });
 
     // 4. Pre-flight: verify warehouse connectivity before running the pipeline
-    const warehousePool = getWarehousePool();
-    const warehouseReachable = await warehousePool.isReachable();
+    const warehousePool = await getWarehousePool();
+    let warehouseReachable = false;
+    try {
+      const client = await warehousePool.connect();
+      try {
+        await client.query('SELECT 1');
+        warehouseReachable = true;
+      } finally {
+        client.release();
+      }
+    } catch {
+      warehouseReachable = false;
+    }
     if (!warehouseReachable) {
       const msg =
         'Warehouse database is unreachable after retry attempts — aborting ingest';

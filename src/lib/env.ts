@@ -8,7 +8,8 @@ export function loadEnvConfig() {
     throw new Error(`POSTGRES_URL is not set in .env.${env}`);
   }
 
-  if (!process.env.F3_DATA_WAREHOUSE_URL) {
+  const warehouseMode = process.env.WAREHOUSE_DB_CONNECTION_MODE ?? 'direct';
+  if (warehouseMode === 'direct' && !process.env.F3_DATA_WAREHOUSE_URL) {
     throw new Error(`F3_DATA_WAREHOUSE_URL is not set in .env.${env}`);
   }
 
