@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Emit a self-contained server bundle (.next/standalone) for the Cloud Run
+  // Docker image. Firebase App Hosting did not require this; the Dockerfile does.
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
