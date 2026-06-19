@@ -214,7 +214,8 @@ export function RegionContent({
     regionDescription && regionDescription.trim().length > 0
       ? regionDescription
       : defaultRegionDescription;
-  const isFallbackLogo = !image;
+  const [logoError, setLogoError] = useState(false);
+  const isFallbackLogo = !image || logoError;
   const sanitizedDescription = useMemo(
     () => sanitizeHtmlToReactNodes(descriptionSource),
     [descriptionSource]
@@ -273,6 +274,7 @@ export function RegionContent({
               height={150}
               className="w-150 h-150 mb-4 mr-2"
               priority={true}
+              onError={() => setLogoError(true)}
             />
           )}
           F3 {regionName}
