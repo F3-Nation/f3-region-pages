@@ -39,6 +39,88 @@ For detailed setup instructions, please refer to our [contribution guide](./CONT
 
 See the [contribution guide](./CONTRIBUTORS.md#available-scripts) for a complete list of npm scripts you can run.
 
+## Deployment
+
+Production deploys run on Google Cloud Run, not Firebase/App Hosting.
+
+Target environment:
+
+- Project: region-pages
+- Region: us-central1
+- Service: f3-region-pages
+
+### One-time setup
+
+1. Install and authenticate gcloud CLI.
+2. Set project and default region:
+
+	gcloud config set project region-pages
+	gcloud config set run/region us-central1
+
+3. Use the project Node version:
+
+	nvm use 20.18.2
+
+4. Enable pnpm via Corepack (recommended):
+
+	corepack enable
+	corepack pnpm --version
+
+### Pre-deploy checks
+
+Recommended before every deploy:
+
+	corepack pnpm install
+	corepack pnpm run lint
+	corepack pnpm run test
+	corepack pnpm run build
+
+### Build and deploy commands
+
+This repository should be built with the Google Buildpacks google-22 builder to keep Node 20 support.
+
+1. Build a tagged container image:
+
+	export IMAGE_TAG=$(date +%Y%m%d-%H%M%S)
+	export IMAGE=us-central1-docker.pkg.dev/region-pages/f3-region-pages/web:$IMAGE_TAG
+	gcloud builds submit . \
+	  --project region-pages \
+	  --region us-central1 \
+	  --pack "builder=gcr.io/buildpacks/builder:google-22,image=$IMAGE,env=GOOGLE_RUNTIME_VERSION=20.18.2"
+
+2. Deploy image to Cloud Run:
+
+	gcloud run deploy f3-region-pages \
+	  --image "$IMAGE" \
+	  --region us-central1 \
+	  --project region-pages \
+	  --quiet
+
+3. Verify rollout:
+
+	gcloud run services describe f3-region-pages \
+	  --region us-central1 \
+	  --project region-pages \
+	  --format='value(status.latestReadyRevisionName,status.url,spec.template.spec.containers[0].image)'
+
+### Required GCP access
+
+The person running deployment commands should have:
+
+- roles/run.admin on project region-pages
+- roles/iam.serviceAccountUser on the Cloud Run runtime service account used by f3-region-pages
+- roles/cloudbuild.builds.editor on project region-pages
+- roles/logging.viewer (recommended for troubleshooting build/deploy logs)
+
+The Cloud Build service account in region-pages must be able to push built images:
+
+- roles/artifactregistry.writer on repository f3-region-pages in us-central1
+
+Optional, if you also need to inspect service/runtime config:
+
+- roles/run.viewer
+- roles/artifactregistry.reader
+
 ## Contributing
 
 We welcome contributions from the community! Please read our [contribution guide](./CONTRIBUTORS.md) for information on how to get started with development, coding standards, and our workflow.
